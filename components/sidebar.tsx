@@ -32,11 +32,16 @@ export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPric
   const isActive = (path: string) => pathname === path;
   
   // Check if user has reached credit limit
+  // TODO: Phase 2+ - Re-enable when credit system is implemented
   const hasReachedCreditLimit = useCallback(() => {
-    if (!profile) return false;
-    const usedCredits = profile.usedCredits ?? 0;
-    const usageCredits = profile.usageCredits ?? 0;
-    return usedCredits >= usageCredits;
+    // Disabled for Phase 1 - credit system not yet implemented
+    return false;
+
+    // Original logic (restore in Phase 2+):
+    // if (!profile) return false;
+    // const usedCredits = profile.usedCredits ?? 0;
+    // const usageCredits = profile.usageCredits ?? 0;
+    // return usedCredits >= usageCredits;
   }, [profile]);
 
   // Plan IDs now come from props, not environment variables
