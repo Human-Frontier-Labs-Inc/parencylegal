@@ -32,19 +32,19 @@ const envSchema = z.object({
   CLERK_SESSION_TOKEN_LEEWAY: z.string().optional(),
   CLERK_ROTATE_SESSION_INTERVAL: z.string().optional(),
 
-  // Stripe Payment Provider
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
-  NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTHLY: z.string().startsWith('price_'),
-  NEXT_PUBLIC_STRIPE_PRICE_ID_SMALL_FIRM_MONTHLY: z.string().startsWith('price_'),
+  // Stripe Payment Provider (Phase 7 - Optional for Phase 1)
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
+  NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTHLY: z.string().optional(),
+  NEXT_PUBLIC_STRIPE_PRICE_ID_SMALL_FIRM_MONTHLY: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE: z.string().optional(),
 
-  // OpenAI
-  OPENAI_API_KEY: z.string().startsWith('sk-'),
+  // OpenAI (Phase 3 - Optional for Phase 1)
+  OPENAI_API_KEY: z.string().optional(),
 
-  // Dropbox (OAuth)
-  DROPBOX_APP_KEY: z.string().min(1),
-  DROPBOX_APP_SECRET: z.string().min(1),
+  // Dropbox (Phase 2 - Optional for Phase 1)
+  DROPBOX_APP_KEY: z.string().optional(),
+  DROPBOX_APP_SECRET: z.string().optional(),
   DROPBOX_REDIRECT_URI: z.string().url().optional(),
 });
 
