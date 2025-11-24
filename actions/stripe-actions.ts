@@ -16,9 +16,9 @@ const getMembershipStatus = (status: Stripe.Subscription.Status, membership: Mem
     case "past_due":
     case "paused":
     case "unpaid":
-      return "free";
+      return "trial";
     default:
-      return "free";
+      return "trial";
   }
 };
 

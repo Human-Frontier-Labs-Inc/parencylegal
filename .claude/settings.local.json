@@ -1,9 +1,35 @@
 {
   "permissions": {
     "allow": [
+      "mcp__ruv-swarm",
+      "mcp__claude-flow@alpha",
+      "mcp__flow-nexus",
+      "Bash(wc:*)",
       "Bash(npm install:*)",
-      "Bash(mkdir:*)"
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(nslookup:*)",
+      "Bash(host:*)",
+      "Bash(supabase projects list:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase db remote:*)",
+      "Bash(supabase projects api-keys:*)",
+      "Bash(supabase projects get:*)",
+      "Bash(cp:*)",
+      "Bash(ping:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:coverage:*)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "claude-flow",
+    "ruv-swarm",
+    "claude-flow@alpha",
+    "flow-nexus"
+  ]
 }

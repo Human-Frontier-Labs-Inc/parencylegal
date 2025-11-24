@@ -91,15 +91,14 @@ async function handleCheckoutSession(event: Stripe.Event) {
         const billingCycleStart = new Date(subscription.current_period_start * 1000);
         const billingCycleEnd = new Date(subscription.current_period_end * 1000);
         
+        // TODO: Phase 2+ - Implement document credits system
         await updateProfile(checkoutSession.client_reference_id, {
-          usageCredits: DEFAULT_USAGE_CREDITS,
-          usedCredits: 0,
           status: "active",
           billingCycleStart,
           billingCycleEnd
         });
-        
-        console.log(`Reset usage credits to ${DEFAULT_USAGE_CREDITS} for user ${checkoutSession.client_reference_id}`);
+
+        console.log(`Updated billing cycle for user ${checkoutSession.client_reference_id}`);
       } catch (error) {
         console.error(`Error updating usage credits: ${error}`);
       }
@@ -119,10 +118,9 @@ async function handlePaymentSuccess(event: Stripe.Event) {
       const billingCycleStart = new Date(subscription.current_period_start * 1000);
       const billingCycleEnd = new Date(subscription.current_period_end * 1000);
       
+      // TODO: Phase 2+ - Implement document credits system
       // Update profile directly by Stripe customer ID
       await updateProfileByStripeCustomerId(customerId, {
-        usageCredits: DEFAULT_USAGE_CREDITS,
-        usedCredits: 0,
         status: "active",
         billingCycleStart,
         billingCycleEnd

@@ -1,27 +1,34 @@
 import { pgEnum, pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const membershipEnum = pgEnum("membership", ["free", "pro"]);
-export const paymentProviderEnum = pgEnum("payment_provider", ["stripe", "whop"]);
+export const membershipEnum = pgEnum("membership", ["trial", "solo", "small_firm", "enterprise"]);
 
 export const profilesTable = pgTable("profiles", {
   userId: text("user_id").primaryKey().notNull(),
   email: text("email"),
-  membership: membershipEnum("membership").notNull().default("free"),
-  paymentProvider: paymentProviderEnum("payment_provider").default("whop"),
+  fullName: text("full_name"),
+  firmName: text("firm_name"), // For Small Firm and Enterprise plans
+  membership: membershipEnum("membership").notNull().default("trial"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  whopUserId: text("whop_user_id"),
-  whopMembershipId: text("whop_membership_id"),
+  stripePriceId: text("stripe_price_id"), // Track which price/plan they subscribed to
   planDuration: text("plan_duration"), // "monthly" or "yearly"
   // Billing cycle tracking
   billingCycleStart: timestamp("billing_cycle_start"),
   billingCycleEnd: timestamp("billing_cycle_end"),
   // Credit renewal tracking (separate from billing cycle for yearly plans)
   nextCreditRenewal: timestamp("next_credit_renewal"),
-  // Usage credits tracking
-  usageCredits: integer("usage_credits").default(0),
-  usedCredits: integer("used_credits").default(0),
+  // Usage tracking (documents processed)
+  documentsProcessedThisMonth: integer("documents_processed_this_month").default(0),
+  documentLimit: integer("document_limit").default(500), // Based on plan
+
+  // Seat tracking (for Small Firm and Enterprise)
+  seatsUsed: integer("seats_used").default(1),
+  seatsLimit: integer("seats_limit").default(1), // Based on plan
+
+  // Trial tracking
+  trialEndsAt: timestamp("trial_ends_at"),
+  trialStartedAt: timestamp("trial_started_at"),
   // Subscription status tracking
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

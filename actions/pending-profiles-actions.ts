@@ -1,48 +1,25 @@
 "use server";
 
-import { 
-  getPendingProfileByEmail, 
-  getUnclaimedPendingProfiles, 
-  markPendingProfileAsClaimed,
-  deletePendingProfile 
-} from "@/db/queries/pending-profiles-queries";
+// TODO: Phase 2+ - Implement pending profiles system if needed
+// This is a stub implementation for Phase 1 deployment
+
+/**
+ * Stub implementations for pending profiles
+ * Full implementation in pending-profiles-actions.ts.backup
+ */
 
 export async function getPendingProfileByEmailAction(email: string) {
-  try {
-    const profile = await getPendingProfileByEmail(email);
-    return { success: true, data: profile };
-  } catch (error) {
-    console.error("Error getting pending profile by email:", error);
-    return { success: false, error: "Failed to get pending profile" };
-  }
+  return null;
 }
 
-export async function getUnclaimedPendingProfilesAction() {
-  try {
-    const profiles = await getUnclaimedPendingProfiles();
-    return { success: true, data: profiles };
-  } catch (error) {
-    console.error("Error getting unclaimed pending profiles:", error);
-    return { success: false, error: "Failed to get unclaimed profiles" };
-  }
+export async function createPendingProfileAction(email: string, usageType: string) {
+  return { success: false, error: "Feature not implemented in Phase 1" };
 }
 
-export async function markPendingProfileAsClaimedAction(id: string, userId: string) {
-  try {
-    const updated = await markPendingProfileAsClaimed(id, userId);
-    return { success: true, data: updated };
-  } catch (error) {
-    console.error("Error marking pending profile as claimed:", error);
-    return { success: false, error: "Failed to mark profile as claimed" };
-  }
+export async function markPendingProfileAsClaimedAction(email: string, userId: string) {
+  return { success: false, error: "Feature not implemented in Phase 1" };
 }
 
-export async function deletePendingProfileAction(id: string) {
-  try {
-    const deleted = await deletePendingProfile(id);
-    return { success: true, data: deleted };
-  } catch (error) {
-    console.error("Error deleting pending profile:", error);
-    return { success: false, error: "Failed to delete pending profile" };
-  }
-} 
+export async function deletePendingProfileAction(email: string) {
+  return { success: false, error: "Feature not implemented in Phase 1" };
+}
