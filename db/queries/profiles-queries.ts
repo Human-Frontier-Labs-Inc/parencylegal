@@ -16,22 +16,16 @@ export const createProfile = async (data: InsertProfile) => {
     // Set default values only if they are not provided
     const profileData = {
       ...data,
-      // Default to 5 credits for free users, but respect provided values
-      usageCredits: data.usageCredits ?? (data.membership === "pro" ? 1000 : 5),
-      // Default to 0 used credits if not specified
-      usedCredits: data.usedCredits ?? 0,
       // Set next credit renewal if not specified
       nextCreditRenewal,
-      // Default to free membership if not specified
-      membership: data.membership || "free"
+      // Default to trial membership if not specified (Phase 1)
+      membership: data.membership || "trial"
     };
     
     console.log(`Creating profile with data:`, {
       userId: profileData.userId,
       email: profileData.email,
       membership: profileData.membership,
-      usageCredits: profileData.usageCredits,
-      usedCredits: profileData.usedCredits,
       status: profileData.status || "active"
     });
     

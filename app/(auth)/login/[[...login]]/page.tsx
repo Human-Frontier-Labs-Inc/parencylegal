@@ -14,9 +14,10 @@ export default function LoginPage() {
     <div className="flex flex-col items-center justify-center w-full">
       <div className="w-full">
         <SignIn
+          routing="hash"
           // Always redirect to dashboard or the specified redirect URL
           redirectUrl={redirectUrl || "/dashboard"}
-          appearance={{ 
+          appearance={{
             baseTheme: theme === "dark" ? dark : undefined,
             elements: {
               formButtonPrimary: "bg-primary hover:bg-primary/90",
