@@ -12,18 +12,19 @@ import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { SelectProfile } from "@/db/schema/profiles-schema";
-import { CreditUsageDisplay } from "@/components/credit-usage-display";
+// TODO: Re-enable when credit system is implemented in Phase 2+
+// import { CreditUsageDisplay } from "@/components/credit-usage-display";
 import UpgradePlanPopup from "@/components/upgrade-plan-popup";
 import { useState, useEffect, useCallback } from "react";
 
 interface SidebarProps {
   profile: SelectProfile | null;
   userEmail?: string;
-  whopMonthlyPlanId: string;
-  whopYearlyPlanId: string;
+  monthlyPriceId: string;
+  yearlyPriceId: string;
 }
 
-export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlanId }: SidebarProps) {
+export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPriceId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
@@ -68,10 +69,10 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
   return (
     <>
       {profile && (
-        <UpgradePlanPopup 
-          profile={profile} 
-          monthlyPlanId={whopMonthlyPlanId} 
-          yearlyPlanId={whopYearlyPlanId}
+        <UpgradePlanPopup
+          profile={profile}
+          monthlyPriceId={monthlyPriceId}
+          yearlyPriceId={yearlyPriceId}
           isOpen={showUpgradePopup}
           onOpenChange={setShowUpgradePopup}
         />
@@ -107,10 +108,10 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
               transition={{ duration: 0.2 }}
             >
               <div className="hidden md:block">
-                <span className="font-bold text-lg">App Name</span>
+                <span className="font-bold text-lg">Parency Legal</span>
               </div>
               <div className="block md:hidden text-center">
-                <span className="font-bold text-sm">A</span>
+                <span className="font-bold text-sm">PL</span>
               </div>
             </motion.div>
           </Link>
@@ -181,22 +182,22 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
               </motion.div>
             </Link>
             
-            {/* Billing Button - Only visible for members with whopMembershipId */}
-            {profile?.whopMembershipId && (
-              <Link 
-                href={`http://whop.com/orders/${profile.whopMembershipId}/manage`}
+            {/* Billing Button - Only visible for members with Stripe subscription */}
+            {profile?.stripeCustomerId && (
+              <Link
+                href="/api/stripe/customer-portal"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <motion.div
-                  whileHover={{ 
+                  whileHover={{
                     scale: 1.03,
                     transition: { duration: 0.2 }
                   }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="w-full flex items-center justify-center md:justify-start gap-1.5 border-white/60 bg-white/70 hover:bg-white/90 hover:border-white py-1.5 h-auto transition-all shadow-sm hover:shadow-md"
                   >
@@ -208,18 +209,19 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
             )}
           </div>
           
-          {/* Credit Usage Display */}
-          <div className="px-3 mb-4">
+          {/* Credit Usage Display - TODO: Re-enable in Phase 2+ */}
+          {/* <div className="px-3 mb-4">
             <div className="hidden md:block">
               <CreditUsageDisplay />
-            </div>
+            </div> */}
+            {/* Mobile credit display - commented out for Phase 1
             <div className="block md:hidden text-center">
               <div className="bg-white/80 py-2 px-1 rounded-lg shadow-sm border border-white/80">
                 <div className="text-[10px] font-medium text-gray-600 mb-1">Credits</div>
                 <div className="flex justify-center">
                   <div className="w-6 h-6 flex items-center justify-center">
-                    <svg 
-                      viewBox="0 0 24 24" 
+                    <svg
+                      viewBox="0 0 24 24"
                       className="w-3.5 h-3.5 text-primary"
                       fill="none"
                       stroke="currentColor"
@@ -233,7 +235,8 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
                 </div>
               </div>
             </div>
-          </div>
+            */}
+          {/* </div> */}
           
           {/* User Profile Section */}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />

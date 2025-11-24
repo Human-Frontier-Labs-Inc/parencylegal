@@ -1,5 +1,5 @@
 /**
- * Dashboard layout component for Template App
+ * Dashboard layout component for Parency Legal
  * Provides a consistent layout structure for all dashboard pages
  * Features a sidebar navigation and main content area
  */
@@ -17,18 +17,18 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ profile, children, title }: DashboardLayoutProps) {
-  // Get the Whop plan IDs - this is a client component, so we can't use server-side env vars directly
-  // We'll use empty strings and let the sidebar component handle the fallback
-  const whopMonthlyPlanId = '';
-  const whopYearlyPlanId = '';
+  // Get the Stripe price IDs from environment variables
+  // In production, these would be passed from the server layout
+  const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY || '';
+  const yearlyPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_YEARLY || '';
 
   return (
     <div className="flex h-screen bg-gray-50 relative">
       {/* Sidebar - now handles showing the upgrade popup */}
-      <Sidebar 
-        profile={profile} 
-        whopMonthlyPlanId={whopMonthlyPlanId}
-        whopYearlyPlanId={whopYearlyPlanId}
+      <Sidebar
+        profile={profile}
+        monthlyPriceId={monthlyPriceId}
+        yearlyPriceId={yearlyPriceId}
       />
       
       {/* Main Content */}

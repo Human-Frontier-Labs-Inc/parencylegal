@@ -3,22 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import WhopPricingCard from "./whop-pricing-card";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface PricingPageClientProps {
   userId: string | null;
-  activePaymentProvider: string;
-  whopRedirectUrl: string;
-  whopMonthlyLink: string;
-  whopYearlyLink: string;
-  whopMonthlyPlanId: string;
-  whopYearlyPlanId: string;
-  stripeMonthlyLink: string;
-  stripeYearlyLink: string;
+  monthlyPriceId: string;
+  yearlyPriceId: string;
   monthlyPrice: string;
   yearlyPrice: string;
 }
@@ -27,21 +21,18 @@ interface PricingPageClientProps {
  * Client component for the pricing page
  * Allows switching between monthly and yearly billing with a toggle
  * Displays a modern pricing card UI with animated transitions
+ * Uses Stripe Checkout for payment processing
  */
 export default function PricingPageClient({
   userId,
-  activePaymentProvider,
-  whopRedirectUrl,
-  whopMonthlyLink,
-  whopYearlyLink,
-  whopMonthlyPlanId,
-  whopYearlyPlanId,
-  stripeMonthlyLink,
-  stripeYearlyLink,
+  monthlyPriceId,
+  yearlyPriceId,
   monthlyPrice,
   yearlyPrice,
 }: PricingPageClientProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   // Calculate yearly savings
   const monthlyCost = parseInt(monthlyPrice.replace(/[^0-9]/g, ''));
@@ -51,28 +42,90 @@ export default function PricingPageClient({
   const savingsPercentage = Math.round((savings / annualMonthlyCost) * 100);
   const savingsAmount = `$${savings}`;
 
+  const handleCheckout = async () => {
+    try {
+      setIsLoading(true);
+
+      // Redirect to sign-in if not authenticated
+      if (!userId) {
+        router.push('/login');
+        return;
+      }
+
+      const priceId = billingCycle === "monthly" ? monthlyPriceId : yearlyPriceId;
+
+      if (!priceId) {
+        console.error('Missing Stripe price ID');
+        alert('Configuration error. Please contact support.');
+        return;
+      }
+
+      // Call the API endpoint to create a Stripe checkout session
+      const response = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error creating checkout:', errorData);
+        alert('Failed to create checkout. Please try again.');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!data.url) {
+        console.error('No checkout URL in response', data);
+        alert('Failed to create checkout. Please try again.');
+        return;
+      }
+
+      // Redirect to the Stripe checkout URL
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error initiating checkout:', error);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const features = [
+    "1,000 credits per billing cycle",
+    "Automatic credit renewals",
+    "Access to all premium features",
+    "Priority support",
+    "Cancel anytime"
+  ];
+
   return (
     <div className="container mx-auto py-16 max-w-5xl">
       <div className="text-center space-y-4 mb-10">
         <h1 className="text-5xl font-bold">Pick Your Plan</h1>
         <p className="text-xl text-muted-foreground mt-4">Choose between monthly or yearly billing</p>
-        
+
         {/* Billing toggle */}
         <div className="flex justify-center mt-8">
-          <ToggleGroup 
-            type="single" 
+          <ToggleGroup
+            type="single"
             value={billingCycle}
             onValueChange={(value) => value && setBillingCycle(value as "monthly" | "yearly")}
             className="border rounded-full p-1.5 bg-white shadow-sm"
           >
-            <ToggleGroupItem 
-              value="monthly" 
+            <ToggleGroupItem
+              value="monthly"
               className="rounded-full px-10 py-2.5 text-base font-medium data-[state=on]:bg-black data-[state=on]:text-white transition-all"
             >
               Monthly
             </ToggleGroupItem>
-            <ToggleGroupItem 
-              value="yearly" 
+            <ToggleGroupItem
+              value="yearly"
               className="rounded-full px-10 py-2.5 text-base font-medium data-[state=on]:bg-black data-[state=on]:text-white transition-all"
             >
               Yearly
@@ -83,197 +136,73 @@ export default function PricingPageClient({
 
       <div className="flex justify-center">
         <div className="w-full max-w-md">
-          {activePaymentProvider === "stripe" ? (
-            // Stripe pricing card
-            <PricingCard
-              title="Business"
-              price={billingCycle === "monthly" ? monthlyPrice : yearlyPrice}
-              description={billingCycle === "monthly" ? "Billed monthly" : "Billed annually"}
-              buttonText="Get Started"
-              buttonLink={billingCycle === "monthly" ? stripeMonthlyLink : stripeYearlyLink}
-              userId={userId}
-              provider="stripe"
-              billingCycle={billingCycle}
-              savingsPercentage={savingsPercentage}
-              savingsAmount={savingsAmount}
-            />
-          ) : (
-            // Whop pricing card
-            <WhopPricingCard
-              title="Business"
-              price={billingCycle === "monthly" ? monthlyPrice : yearlyPrice}
-              description={billingCycle === "monthly" ? "Billed monthly" : "Billed yearly"}
-              buttonText="Get Started"
-              planId={billingCycle === "monthly" ? whopMonthlyPlanId : whopYearlyPlanId}
-              redirectUrl={whopRedirectUrl}
-              billingCycle={billingCycle}
-              savingsPercentage={savingsPercentage}
-              savingsAmount={savingsAmount}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={billingCycle}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="w-full border-2 border-primary shadow-lg relative overflow-hidden">
+                {billingCycle === "yearly" && (
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                      Save {savingsPercentage}%
+                    </div>
+                  </div>
+                )}
+
+                <CardHeader className="pb-8 pt-6">
+                  <CardTitle className="text-3xl font-bold">Pro Plan</CardTitle>
+                  <CardDescription className="text-base mt-2">
+                    {billingCycle === "monthly" ? "Billed monthly" : "Billed annually"}
+                  </CardDescription>
+
+                  <div className="mt-6">
+                    <span className="text-5xl font-bold">
+                      {billingCycle === "monthly" ? monthlyPrice : yearlyPrice}
+                    </span>
+                    <span className="text-muted-foreground ml-2">
+                      {billingCycle === "yearly" ? "/year" : "/month"}
+                    </span>
+                  </div>
+
+                  {billingCycle === "yearly" && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {savingsAmount} savings compared to monthly
+                    </p>
+                  )}
+                </CardHeader>
+
+                <CardContent className="pb-8">
+                  <ul className="space-y-3">
+                    {features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <div className="rounded-full bg-primary/10 p-1 mr-3 mt-0.5">
+                          <Check className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="text-base">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+
+                <CardFooter>
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={isLoading}
+                    className="w-full h-12 text-base font-semibold"
+                    size="lg"
+                  >
+                    {isLoading ? "Processing..." : "Get Started"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
-
-interface PricingCardProps {
-  title: string;
-  price: string;
-  description: string;
-  buttonText: string;
-  buttonLink: string;
-  userId: string | null;
-  provider: 'stripe' | 'whop';
-  redirectUrl?: string;
-  billingCycle: "monthly" | "yearly";
-  savingsPercentage: number;
-  savingsAmount: string;
-}
-
-function PricingCard({ 
-  title, 
-  price, 
-  description, 
-  buttonText, 
-  buttonLink, 
-  userId, 
-  provider, 
-  redirectUrl,
-  billingCycle,
-  savingsPercentage,
-  savingsAmount
-}: PricingCardProps) {
-  // Each provider expects different parameter names
-  let finalButtonLink = buttonLink;
-  
-  if (userId) {
-    if (provider === 'whop') {
-      // Start with a clean URL by removing any existing parameters
-      const baseUrl = buttonLink.split('?')[0];
-      
-      // Build parameters properly
-      const params = new URLSearchParams();
-      
-      // Add d2c=true - CRITICAL for direct checkout without Whop account
-      params.append('d2c', 'true');
-      
-      // Add redirect URL
-      if (redirectUrl) {
-        params.append('redirect', redirectUrl);
-      }
-      
-      // Add userId both as a direct parameter and in metadata
-      params.append('userId', userId);
-      params.append('metadata[userId]', userId);
-      
-      // Construct the final URL
-      finalButtonLink = `${baseUrl}?${params.toString()}`;
-    } else {
-      // For Stripe, keep the original 'ref' parameter
-      finalButtonLink = `${buttonLink}${buttonLink.includes('?') ? '&' : '?'}ref=${userId}`;
-    }
-  }
-  
-  // Benefits list
-  const benefits = [
-    "All Pro Plan features",
-    "Unlimited storage & bandwidth",
-    "Full e-commerce functionality",
-    "Priority customer support",
-    "Team collaboration tools"
-  ];
-
-  return (
-    <Card className="rounded-2xl border shadow-sm overflow-hidden relative">
-      {/* Savings tag for yearly billing */}
-      {billingCycle === "yearly" && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute -top-0.5 right-6"
-        >
-          <div className="bg-gradient-to-r from-purple-500 to-purple-700 text-white text-xs font-bold px-4 py-1.5 rounded-b-lg shadow-sm">
-            Save {savingsPercentage}% ({savingsAmount})
-          </div>
-        </motion.div>
-      )}
-      
-      <CardHeader className="px-6 py-6">
-        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-        <CardDescription className="text-base text-gray-500 mt-1">Best for e-commerce and scaling businesses.</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="px-6 space-y-6 pb-0">
-        <div>
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={billingCycle}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="mb-1 flex items-baseline"
-            >
-              <span className="text-5xl font-bold">{price}</span>
-              <span className="text-gray-500 ml-2 text-base">
-                /{billingCycle === "monthly" ? "month" : "year"}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-          {billingCycle === "yearly" && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center mt-1"
-            >
-              <span className="text-sm text-purple-600 font-medium flex items-center">
-                <svg 
-                  className="w-3.5 h-3.5 mr-1" 
-                  fill="currentColor" 
-                  viewBox="0 0 20 20" 
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path 
-                    fillRule="evenodd" 
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
-                Billed annually
-              </span>
-            </motion.div>
-          )}
-        </div>
-        
-        <Button
-          className="w-full py-4 text-base font-medium h-auto rounded-lg"
-          asChild
-          variant="default"
-        >
-          <a
-            href={finalButtonLink}
-            className={cn("inline-flex items-center justify-center", finalButtonLink === "#" && "pointer-events-none opacity-50")}
-          >
-            {buttonText}
-          </a>
-        </Button>
-      </CardContent>
-      
-      <div className="px-6 pt-6 pb-6">
-        <h3 className="font-semibold mb-4">Benefits</h3>
-        <ul className="space-y-3">
-          {benefits.map((benefit, index) => (
-            <li key={index} className="flex items-center gap-2.5">
-              <div className="flex-shrink-0 w-4 h-4 text-purple-600">
-                <Check className="h-4 w-4" />
-              </div>
-              <span className="text-sm text-gray-700">{benefit}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
-  );
-} 

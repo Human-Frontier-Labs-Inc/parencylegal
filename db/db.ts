@@ -1,29 +1,42 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { profilesTable } from "./schema/profiles-schema";
-import { pendingProfilesTable } from "./schema/pending-profiles-schema";
+import { casesTable } from "./schema/cases-schema";
+import { documentsTable } from "./schema/documents-schema";
+import { discoveryRequestsTable } from "./schema/discovery-requests-schema";
+import { documentRequestMappingsTable } from "./schema/document-request-mappings-schema";
+import { aiChatSessionsTable } from "./schema/ai-chat-sessions-schema";
+import { syncHistoryTable } from "./schema/sync-history-schema";
+import { dropboxConnectionsTable } from "./schema/dropbox-connections-schema";
+import { env } from "@/lib/env";
 
 // Define the schema properly
-const schema = { 
+const schema = {
   profiles: profilesTable,
-  pendingProfiles: pendingProfilesTable
+  cases: casesTable,
+  documents: documentsTable,
+  discoveryRequests: discoveryRequestsTable,
+  documentRequestMappings: documentRequestMappingsTable,
+  aiChatSessions: aiChatSessionsTable,
+  syncHistory: syncHistoryTable,
+  dropboxConnections: dropboxConnectionsTable,
 };
 
 // Add connection options with improved timeout and retry settings for Vercel environment
 const connectionOptions = {
-  max: 3,               // Lower max connections to prevent overloading
-  idle_timeout: 10,     // Shorter idle timeout
-  connect_timeout: 5,   // Shorter connect timeout
+  max: 10,              // Increased from 3 for better concurrency
+  idle_timeout: 20,     // Increased from 10
+  connect_timeout: 10,  // Increased from 5
   prepare: false,       // Disable prepared statements
   keepalive: true,      // Keep connections alive
   debug: false,         // Disable debug logging in production
   connection: {
-    application_name: "whop-boilerplate" // Identify app in Supabase logs
+    application_name: "parency-lawyer-app" // Identify app in Supabase logs
   }
 };
 
 // Create a postgres client with optimized connection options
-export const client = postgres(process.env.DATABASE_URL!, connectionOptions);
+export const client = postgres(env.DATABASE_URL, connectionOptions);
 
 // Create a drizzle client
 export const db = drizzle(client, { schema });

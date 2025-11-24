@@ -1,5 +1,5 @@
 /**
- * Dashboard layout for Template App
+ * Dashboard layout for Parency Legal
  * This layout removes the global header from all dashboard pages
  * and applies the dashboard-specific styling
  */
@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import CancellationPopup from "@/components/cancellation-popup";
 import WelcomeMessagePopup from "@/components/welcome-message-popup";
 import PaymentSuccessPopup from "@/components/payment-success-popup";
+import { ensureProfile } from "@/lib/auth/ensure-profile";
 
 /**
  * Check if a free user with an expired billing cycle needs their credits downgraded
@@ -69,9 +70,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return redirect("/login");
   }
 
-  let profile = await getProfileByUserId(userId);
+  // Ensure profile exists (creates if missing)
+  let profile = await ensureProfile(userId);
 
   if (!profile) {
+    // If profile creation failed, redirect to signup
+    console.error(`Failed to ensure profile for user ${userId}, redirecting to signup`);
     return redirect("/signup");
   }
 
@@ -91,8 +95,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   console.log('Dashboard profile:', {
     userId: profile.userId,
     membership: profile.membership,
-    createdAt: profile.createdAt,
-    usageCredits: profile.usageCredits
+    createdAt: profile.createdAt
   });
 
   return (
@@ -109,11 +112,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       )}
       
       {/* Sidebar component with profile data and user email */}
-      <Sidebar 
-        profile={profile} 
-        userEmail={userEmail} 
-        whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
-        whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
+      <Sidebar
+        profile={profile}
+        userEmail={userEmail}
+        monthlyPriceId={process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY || ''}
+        yearlyPriceId={process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_YEARLY || ''}
       />
       
       {/* Main content area */}

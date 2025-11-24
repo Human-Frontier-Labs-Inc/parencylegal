@@ -2,6 +2,7 @@
  * Upgrade Plan Popup Component
  * Appears when a user has reached their credit limit
  * Encourages users to upgrade their plan for more credits
+ * Uses Stripe Checkout for payment processing
  */
 "use client";
 
@@ -15,16 +16,16 @@ import { SelectProfile } from "@/db/schema/profiles-schema";
 
 interface UpgradePlanPopupProps {
   profile: SelectProfile;
-  monthlyPlanId: string;
-  yearlyPlanId: string;
+  monthlyPriceId: string;
+  yearlyPriceId: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export default function UpgradePlanPopup({ 
-  profile, 
-  monthlyPlanId, 
-  yearlyPlanId,
+export default function UpgradePlanPopup({
+  profile,
+  monthlyPriceId,
+  yearlyPriceId,
   isOpen: externalIsOpen,
   onOpenChange: externalOnOpenChange
 }: UpgradePlanPopupProps) {
@@ -34,7 +35,7 @@ export default function UpgradePlanPopup({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manuallyDismissed, setManuallyDismissed] = useState(false);
-  
+
   // Use external state if provided, otherwise use internal state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const onOpenChange = externalOnOpenChange || ((open: boolean) => {
@@ -46,7 +47,7 @@ export default function UpgradePlanPopup({
         // Store in localStorage that user dismissed the popup this session
         const dismissKey = `upgrade_popup_dismissed_${profile.userId}`;
         localStorage.setItem(dismissKey, 'true');
-        
+
         // Remove active popup flag if this is the active popup
         const activePopup = localStorage.getItem('active_popup');
         if (activePopup === 'upgrade_plan') {
@@ -57,7 +58,7 @@ export default function UpgradePlanPopup({
       }
     }
   });
-  
+
   // When the popup opens, set it as the active popup
   useEffect(() => {
     if (isOpen) {
@@ -68,12 +69,12 @@ export default function UpgradePlanPopup({
       }
     }
   }, [isOpen]);
-  
+
   // Pricing details
   const monthlyPrice = "$30";
   const yearlyPrice = "$249";
   const yearlyPriceMonthly = "$20";
-  
+
   useEffect(() => {
     // Only auto-show if using internal state (not externally controlled)
     if (externalIsOpen === undefined) {
@@ -87,7 +88,7 @@ export default function UpgradePlanPopup({
       } catch (error) {
         console.error('Error accessing localStorage:', error);
       }
-      
+
       // Check if user has already dismissed the popup this session
       try {
         const dismissKey = `upgrade_popup_dismissed_${profile.userId}`;
@@ -104,12 +105,12 @@ export default function UpgradePlanPopup({
       if (manuallyDismissed) {
         return;
       }
-      
+
       // Calculate credit usage
       const usedCredits = profile.usedCredits ?? 0;
       const usageCredits = profile.usageCredits ?? 0;
       const hasReachedLimit = usedCredits >= usageCredits;
-      
+
       // Show popup if user has reached limit
       if (hasReachedLimit) {
         const timer = setTimeout(() => {
@@ -119,7 +120,7 @@ export default function UpgradePlanPopup({
             if (activePopup) {
               return;
             }
-            
+
             // Set this as the active popup
             localStorage.setItem('active_popup', 'upgrade_plan');
             setInternalIsOpen(true);
@@ -127,61 +128,57 @@ export default function UpgradePlanPopup({
             console.error('Error accessing localStorage:', error);
           }
         }, 800);
-        
+
         return () => clearTimeout(timer);
       }
     }
   }, [profile.usedCredits, profile.usageCredits, externalIsOpen, profile.userId, manuallyDismissed]);
-  
+
   const handleCheckout = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Get the correct plan ID based on billing cycle
-      const planId = yearly ? yearlyPlanId : monthlyPlanId;
-      
-      if (!planId) {
-        console.error("Missing plan ID for checkout. Check environment variables WHOP_PLAN_ID_MONTHLY and WHOP_PLAN_ID_YEARLY.");
+
+      // Get the correct price ID based on billing cycle
+      const priceId = yearly ? yearlyPriceId : monthlyPriceId;
+
+      if (!priceId) {
+        console.error("Missing Stripe price ID for checkout. Check environment variables STRIPE_PRICE_ID_MONTHLY and STRIPE_PRICE_ID_YEARLY.");
         setError("Configuration issue detected. Please visit the pricing page to complete your purchase.");
         return;
       }
-      
-      // Use the dashboard as the redirect URL
-      const cleanRedirectUrl = "/dashboard?payment=success";
-      
-      console.log(`Creating checkout with planId: ${planId}`);
-      
-      // Call the API endpoint to create a checkout session
-      const response = await fetch('/api/whop/create-checkout', {
+
+      console.log(`Creating Stripe checkout with priceId: ${priceId}`);
+
+      // Call the API endpoint to create a Stripe checkout session
+      const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          planId,
-          redirectUrl: cleanRedirectUrl
+          priceId,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Error creating checkout:', errorData);
         setError('Failed to create checkout. Please try again later.');
         return;
       }
-      
+
       const data = await response.json();
-      
-      if (!data.checkoutUrl) {
+
+      if (!data.url) {
         console.error('No checkout URL in response', data);
         setError('Failed to create checkout. Please try again.');
         return;
       }
-      
-      console.log('Created Whop checkout with URL:', data.checkoutUrl);
-      console.log('Beginning redirect to Whop checkout page');
-      
+
+      console.log('Created Stripe checkout with URL:', data.url);
+      console.log('Beginning redirect to Stripe checkout page');
+
       // Store information in localStorage to help with state persistence across redirects
       try {
         localStorage.setItem('checkout_started', 'true');
@@ -190,9 +187,9 @@ export default function UpgradePlanPopup({
       } catch (error) {
         console.error('Could not write to localStorage:', error);
       }
-      
-      // Redirect to the checkout URL
-      window.location.href = data.checkoutUrl;
+
+      // Redirect to the Stripe checkout URL
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error initiating checkout:', error);
       setError('An unexpected error occurred. Please try again later.');
@@ -200,11 +197,11 @@ export default function UpgradePlanPopup({
       setIsLoading(false);
     }
   };
-  
+
   // Safe values for display
   const usedCredits = profile.usedCredits ?? 0;
   const usageCredits = profile.usageCredits ?? 0;
-  
+
   // Benefits list
   const benefits = [
     "1,000 credits per billing cycle",
@@ -212,7 +209,7 @@ export default function UpgradePlanPopup({
     "Access to all premium features",
     "Priority support"
   ];
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       {isOpen && <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-40" />}
@@ -231,7 +228,7 @@ export default function UpgradePlanPopup({
           >
             <X size={16} />
           </button>
-          
+
           {/* Header */}
           <div className="px-6 pt-5 pb-3">
             <div className="flex items-center gap-2 mb-1.5">
@@ -243,22 +240,22 @@ export default function UpgradePlanPopup({
             <p className="text-sm text-gray-600 mb-3">
               You&apos;ve used all your credits ({usedCredits}/{usageCredits}). Get more with Pro.
             </p>
-            
+
             {/* Credit usage progress bar */}
             <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-purple-500 rounded-full" style={{ width: '100%' }} />
             </div>
           </div>
-          
+
           {/* Pricing toggle */}
           <div className="px-6 pb-4 pt-2">
             <div className="flex items-center justify-center mb-5 bg-gray-50 rounded-lg p-2.5">
               <span className={`text-sm mr-3 ${!yearly ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
                 Monthly
               </span>
-              <Switch 
-                checked={yearly} 
-                onCheckedChange={setYearly} 
+              <Switch
+                checked={yearly}
+                onCheckedChange={setYearly}
                 className="data-[state=checked]:bg-purple-600"
               />
               <span className={`text-sm ml-3 flex items-center ${yearly ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
@@ -268,7 +265,7 @@ export default function UpgradePlanPopup({
                 </span>
               </span>
             </div>
-            
+
             {/* Price display */}
             <div className="text-center mb-3">
               <div className="flex items-baseline justify-center">
@@ -276,16 +273,16 @@ export default function UpgradePlanPopup({
                 <span className="text-gray-500 text-sm ml-1">/month</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {yearly 
+                {yearly
                   ? `Billed annually at ${yearlyPrice}`
                   : "Billed monthly, cancel anytime"}
               </p>
             </div>
-          
+
             {/* Features list */}
             <ul className="space-y-2.5 mb-5">
               {benefits.map((benefit, i) => (
-                <li 
+                <li
                   key={i}
                   className="flex items-start text-sm text-gray-600"
                 >
@@ -296,9 +293,9 @@ export default function UpgradePlanPopup({
                 </li>
               ))}
             </ul>
-            
+
             {/* Checkout button */}
-            <Button 
+            <Button
               className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               size="lg"
               onClick={handleCheckout}
@@ -306,15 +303,15 @@ export default function UpgradePlanPopup({
             >
               {isLoading ? "Processing..." : `Get Pro ${yearly ? 'Yearly' : 'Monthly'}`}
             </Button>
-            
+
             {error && (
               <div className="mt-3 text-xs text-red-600 text-center">
                 {error}
               </div>
             )}
-            
+
             <p className="text-xs text-gray-400 text-center mt-3">
-              Next free renewal: {profile.nextCreditRenewal 
+              Next free renewal: {profile.nextCreditRenewal
                 ? new Date(profile.nextCreditRenewal).toLocaleDateString()
                 : 'Not scheduled'}
             </p>
@@ -323,4 +320,4 @@ export default function UpgradePlanPopup({
       </DialogContent>
     </Dialog>
   );
-} 
+}

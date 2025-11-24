@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
-// This handles both payment provider use cases from whop-setup.md and stripe-setup.md
+// Clerk middleware with custom logic for payment redirects and webhook handling
 export default clerkMiddleware(async (auth, req) => {
-  // Skip auth for webhook endpoints
-  if (req.nextUrl.pathname.startsWith('/api/whop/webhooks')) {
-    console.log("Skipping Clerk auth for Whop webhook endpoint");
+  // Skip auth for Stripe webhook endpoints
+  if (req.nextUrl.pathname.startsWith('/api/stripe/webhooks')) {
+    console.log("Skipping Clerk auth for Stripe webhook endpoint");
     return NextResponse.next();
   }
   
@@ -42,15 +42,13 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(url);
   }
 
-  // Special handling for frictionless payment flow
-  // If a user has just completed signup after payment and is authenticated,
-  // redirect them to the dashboard instead of keeping them on the signup page
-  if (req.nextUrl.pathname.startsWith('/signup') && req.nextUrl.search.includes('payment=success')) {
+  // Handle successful payment redirect after Stripe checkout
+  if (req.nextUrl.pathname.startsWith('/dashboard') && req.nextUrl.search.includes('session_id')) {
     const { userId } = auth();
-    
-    // If user is authenticated and on signup page with payment=success, they should go to dashboard
+
+    // If user is authenticated and just returned from Stripe checkout
     if (userId) {
-      console.log("Frictionless payment user authenticated, redirecting to dashboard");
+      console.log("User returned from Stripe checkout, cleaning URL");
       const dashboardUrl = new URL('/dashboard', req.url);
       dashboardUrl.searchParams.set('payment', 'success');
       dashboardUrl.searchParams.set('cb', Date.now().toString().slice(-4));
@@ -76,7 +74,7 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Match all routes except for these:
-    "/((?!api/whop/webhooks|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api/stripe/webhooks|_next/static|_next/image|favicon.ico).*)",
     "/"
   ]
 };
