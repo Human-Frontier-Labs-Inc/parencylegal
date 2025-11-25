@@ -33,7 +33,8 @@
       "Bash(vercel env:*)",
       "Bash(vercel ls:*)",
       "Bash(printf:*)",
-      "Bash(vercel inspect:*)"
+      "Bash(vercel inspect:*)",
+      "Bash(vercel --prod)"
     ],
     "deny": []
   },
