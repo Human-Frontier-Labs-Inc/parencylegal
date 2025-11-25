@@ -12,8 +12,11 @@ export const documentsTable = pgTable("documents", {
 
   // Dropbox metadata
   dropboxFileId: text("dropbox_file_id"), // Unique Dropbox file ID
-  dropboxFilePath: text("dropbox_file_path"), // Full path in Dropbox
+  dropboxPath: text("dropbox_path"), // Full path in Dropbox (lowercase)
+  dropboxFilePath: text("dropbox_file_path"), // Full path in Dropbox (display)
   dropboxRev: text("dropbox_rev"), // Dropbox file revision (for change detection)
+  dropboxContentHash: text("dropbox_content_hash"), // Content hash for duplicate detection
+  syncedAt: timestamp("synced_at"), // When file was last synced from Dropbox
 
   // File metadata
   fileName: text("file_name").notNull(),

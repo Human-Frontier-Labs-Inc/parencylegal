@@ -58,6 +58,7 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
+    "dropbox": "^10.34.0",
     "embla-carousel-react": "^8.2.0",
     "framer-motion": "^11.3.30",
     "input-otp": "^1.2.4",
