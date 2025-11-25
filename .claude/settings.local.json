@@ -22,7 +22,18 @@
       "Bash(cp:*)",
       "Bash(ping:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(git push:*)",
+      "Bash(gh --version:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh org:*)",
+      "Bash(gh api:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel env:*)",
+      "Bash(vercel ls:*)",
+      "Bash(printf:*)",
+      "Bash(vercel inspect:*)"
     ],
     "deny": []
   },
