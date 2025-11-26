@@ -17,10 +17,17 @@ const REDIRECT_URI = process.env.DROPBOX_REDIRECT_URI ||
  * Initiates Dropbox OAuth flow
  */
 export async function GET(request: NextRequest) {
+  console.log("Dropbox OAuth initiation started");
+  console.log("DROPBOX_APP_KEY exists:", !!process.env.DROPBOX_APP_KEY);
+  console.log("DROPBOX_APP_SECRET exists:", !!process.env.DROPBOX_APP_SECRET);
+  console.log("REDIRECT_URI:", REDIRECT_URI);
+
   try {
     const { userId } = await auth();
+    console.log("User ID:", userId ? "found" : "not found");
 
     if (!userId) {
+      console.log("No userId, returning 401");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -29,21 +36,26 @@ export async function GET(request: NextRequest) {
 
     // Check if Dropbox credentials are configured
     if (!process.env.DROPBOX_APP_KEY || !process.env.DROPBOX_APP_SECRET) {
+      console.log("Dropbox credentials missing");
       return NextResponse.json(
         { error: "Dropbox integration not configured" },
         { status: 503 }
       );
     }
 
+    console.log("Generating auth URL...");
     // Generate authorization URL
-    const authUrl = await generateDropboxAuthUrl(userId, REDIRECT_URI);
+    const authUrl = generateDropboxAuthUrl(userId, REDIRECT_URI);
+    console.log("Auth URL generated:", authUrl.substring(0, 100) + "...");
 
     // Redirect to Dropbox
     return NextResponse.redirect(authUrl);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error initiating Dropbox OAuth:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: "Failed to initiate Dropbox connection" },
+      { error: "Failed to initiate Dropbox connection: " + error.message },
       { status: 500 }
     );
   }

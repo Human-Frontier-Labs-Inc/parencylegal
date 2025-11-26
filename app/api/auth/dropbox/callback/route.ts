@@ -21,6 +21,9 @@ const ERROR_REDIRECT = "/dashboard/settings?dropbox=error";
  * Handles the OAuth callback from Dropbox
  */
 export async function GET(request: NextRequest) {
+  console.log("Dropbox callback received");
+  console.log("REDIRECT_URI:", REDIRECT_URI);
+
   const searchParams = request.nextUrl.searchParams;
 
   // Check for OAuth errors
@@ -38,6 +41,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
 
+  console.log("Code received:", code ? "yes" : "no");
+  console.log("State received:", state ? "yes" : "no");
+
   if (!code || !state) {
     console.error("Missing code or state in Dropbox callback");
     return NextResponse.redirect(
@@ -47,25 +53,33 @@ export async function GET(request: NextRequest) {
 
   // Validate state (CSRF protection)
   const userId = validateState(state);
+  console.log("UserId from state:", userId ? "found" : "not found");
+
   if (!userId) {
     console.error("Invalid state parameter in Dropbox callback");
-    return NextResponse.json(
-      { error: "Invalid state parameter. Please try connecting again." },
-      { status: 400 }
+    return NextResponse.redirect(
+      new URL(`${ERROR_REDIRECT}&message=Invalid state. Please try again.`, request.url)
     );
   }
 
   try {
+    console.log("Exchanging code for tokens...");
     // Exchange code for tokens
     const tokens = await exchangeDropboxCode(code, REDIRECT_URI);
+    console.log("Tokens received, account_id:", tokens.account_id);
 
+    console.log("Saving connection to database...");
     // Save connection to database
     await saveDropboxConnection(userId, tokens);
+    console.log("Connection saved successfully");
 
     // Redirect to success page
-    return NextResponse.redirect(new URL(SUCCESS_REDIRECT, request.url));
+    const successUrl = new URL(SUCCESS_REDIRECT, request.url);
+    console.log("Redirecting to:", successUrl.toString());
+    return NextResponse.redirect(successUrl);
   } catch (error: any) {
     console.error("Error completing Dropbox OAuth:", error);
+    console.error("Error stack:", error.stack);
 
     const message = error.message || "Failed to connect Dropbox";
     return NextResponse.redirect(

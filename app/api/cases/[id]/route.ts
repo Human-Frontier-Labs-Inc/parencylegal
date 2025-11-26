@@ -22,11 +22,11 @@ const updateCaseSchema = z.object({
 // GET /api/cases/[id] - Get a single case by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -34,7 +34,7 @@ export async function GET(
       )
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Fetch case
     const cases = await db
@@ -73,11 +73,11 @@ export async function GET(
 // PATCH /api/cases/[id] - Update a case
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -85,7 +85,7 @@ export async function PATCH(
       )
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check Content-Type
     const contentType = request.headers.get('content-type')
@@ -165,11 +165,11 @@ export async function PATCH(
 // DELETE /api/cases/[id] - Delete a case
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -177,7 +177,7 @@ export async function DELETE(
       )
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if case exists and user owns it
     const existingCases = await db

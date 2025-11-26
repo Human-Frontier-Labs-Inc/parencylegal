@@ -1,13 +1,13 @@
 /**
  * Dropbox File Sync Service
  * Handles file synchronization from Dropbox to Supabase Storage
+ * Using direct fetch API for serverless compatibility
  */
 
-import { Dropbox, files } from 'dropbox';
 import { db } from '@/db/db';
 import { documentsTable, casesTable, syncHistoryTable } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { getDropboxClientForUser, listDropboxFolders, type DropboxFile } from './folders';
+import { getAccessTokenForUser, listDropboxFolders, type DropboxFile } from './folders';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client for storage
@@ -202,28 +202,41 @@ export async function cancelSync(syncId: string): Promise<boolean> {
 
 /**
  * Detect duplicate files by content hash
+ * Returns content hashes that already exist in the database
  */
 export async function detectDuplicates(
   caseId: string,
   contentHashes: string[]
 ): Promise<string[]> {
-  const existingDocs = await db
-    .select({ dropboxContentHash: documentsTable.dropboxContentHash })
-    .from(documentsTable)
-    .where(
-      and(
-        eq(documentsTable.caseId, caseId),
-        inArray(documentsTable.dropboxContentHash, contentHashes)
-      )
-    );
+  // Handle empty array - inArray with empty array causes SQL error
+  if (contentHashes.length === 0) {
+    return [];
+  }
 
-  return existingDocs
-    .map(d => d.dropboxContentHash)
-    .filter((hash): hash is string => hash !== null);
+  try {
+    const existingDocs = await db
+      .select({ dropboxContentHash: documentsTable.dropboxContentHash })
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.caseId, caseId),
+          inArray(documentsTable.dropboxContentHash, contentHashes)
+        )
+      );
+
+    return existingDocs
+      .map(d => d.dropboxContentHash)
+      .filter((hash): hash is string => hash !== null);
+  } catch (error) {
+    console.error('Error detecting duplicates:', error);
+    // Return empty array on error - will try to sync all files
+    return [];
+  }
 }
 
 /**
  * Download file from Dropbox and store in Supabase
+ * Using direct fetch API for serverless compatibility
  */
 export async function downloadAndStoreFile(
   userId: string,
@@ -231,11 +244,24 @@ export async function downloadAndStoreFile(
   caseId: string,
   fileMetadata: DropboxFile
 ): Promise<{ documentId: string; storagePath: string }> {
-  const dbx = await getDropboxClientForUser(userId);
+  const accessToken = await getAccessTokenForUser(userId);
 
-  // Download file from Dropbox
-  const downloadResponse = await dbx.filesDownload({ path: dropboxPath }) as any;
-  const fileBlob = downloadResponse.result.fileBinary;
+  // Download file from Dropbox using direct fetch
+  const downloadResponse = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Dropbox-API-Arg': JSON.stringify({ path: dropboxPath }),
+    },
+  });
+
+  if (!downloadResponse.ok) {
+    const errorText = await downloadResponse.text();
+    console.error('Dropbox download failed:', downloadResponse.status, errorText);
+    throw new Error(`Failed to download file from Dropbox: ${downloadResponse.status}`);
+  }
+
+  const fileBlob = await downloadResponse.arrayBuffer();
 
   // Generate storage path
   const fileName = fileMetadata.name;
@@ -307,6 +333,8 @@ export async function syncDropboxFolder(
     const allFiles: DropboxFile[] = [];
     let cursor: string | undefined;
 
+    console.log(`[Sync] Starting sync for case ${caseId}, folder: ${caseRecord.dropboxFolderPath}`);
+
     do {
       const contents = await listDropboxFolders(
         userId,
@@ -319,6 +347,7 @@ export async function syncDropboxFolder(
     } while (cursor);
 
     filesFound = allFiles.length;
+    console.log(`[Sync] Found ${filesFound} files in Dropbox folder`);
 
     // Update progress
     const progress = activeSyncs.get(caseId);
@@ -396,6 +425,8 @@ export async function syncDropboxFolder(
     // Clean up progress tracking
     activeSyncs.delete(caseId);
 
+    console.log(`[Sync] Completed sync for case ${caseId}: ${filesNew} new, ${filesSkipped} skipped, ${filesError} errors in ${durationMs}ms`);
+
     return {
       ...syncResult,
       status: 'completed',
@@ -410,15 +441,22 @@ export async function syncDropboxFolder(
     };
   } catch (error: any) {
     // Handle fatal errors
-    await db
-      .update(syncHistoryTable)
-      .set({
-        status: 'error',
-        errors: [{ file: '', error: error.message, timestamp: new Date().toISOString() }],
-        completedAt: new Date(),
-        durationMs: Date.now() - startTime,
-      })
-      .where(eq(syncHistoryTable.id, syncResult.syncId));
+    console.error(`[Sync] Fatal error for case ${caseId}:`, error.message || error);
+    console.error(`[Sync] Error stack:`, error.stack);
+
+    try {
+      await db
+        .update(syncHistoryTable)
+        .set({
+          status: 'error',
+          errors: [{ file: '', error: error.message || 'Unknown error', timestamp: new Date().toISOString() }],
+          completedAt: new Date(),
+          durationMs: Date.now() - startTime,
+        })
+        .where(eq(syncHistoryTable.id, syncResult.syncId));
+    } catch (dbError) {
+      console.error(`[Sync] Failed to update sync history:`, dbError);
+    }
 
     activeSyncs.delete(caseId);
 

@@ -38,8 +38,10 @@ interface DropboxFolder {
 
 interface FolderPickerProps {
   value?: string;
-  onSelect: (folderPath: string, folderId: string) => void;
+  onSelect: (folderId: string, folderPath: string) => void;
+  onCancel?: () => void;
   disabled?: boolean;
+  isOpen?: boolean;
 }
 
 export function FolderPicker({ value, onSelect, disabled }: FolderPickerProps) {

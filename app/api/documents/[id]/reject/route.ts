@@ -9,7 +9,7 @@ import { rejectClassification } from "@/lib/ai/review";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -21,6 +21,8 @@ export async function POST(
       );
     }
 
+    const { id } = await params;
+
     const body = await request.json();
     const { reason } = body;
 
@@ -31,7 +33,7 @@ export async function POST(
       );
     }
 
-    const result = await rejectClassification(params.id, userId, reason);
+    const result = await rejectClassification(id, userId, reason);
 
     return NextResponse.json({
       success: result,

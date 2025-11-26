@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Home, Settings, Database, Target, Users, Sparkles, CreditCard } from "lucide-react";
+import { Home, Settings, Folder, FileText, Sparkles, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -47,11 +47,9 @@ export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPric
   // Plan IDs now come from props, not environment variables
   
   const navItems = [
-    { href: "/dashboard", icon: <Home size={16} />, label: "Home" },
+    { href: "/dashboard", icon: <Home size={16} />, label: "Dashboard" },
+    { href: "/dashboard/cases", icon: <Folder size={16} />, label: "Cases" },
     { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
-    { href: "/dashboard/data-source", icon: <Database size={16} />, label: "Data source" },
-    { href: "/dashboard/targets", icon: <Target size={16} />, label: "Targets" },
-    { href: "/dashboard/members", icon: <Users size={16} />, label: "Members" },
   ];
 
   // Handle navigation item click

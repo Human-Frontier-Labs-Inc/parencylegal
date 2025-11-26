@@ -9,7 +9,7 @@ import { classifyAndStore } from "@/lib/ai/classification";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -21,7 +21,7 @@ export async function POST(
       );
     }
 
-    const documentId = params.id;
+    const { id: documentId } = await params;
 
     // Check if OpenAI is configured
     if (!process.env.OPENAI_API_KEY) {

@@ -9,7 +9,7 @@ import { getClassificationHistory } from "@/lib/ai/review";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -21,10 +21,12 @@ export async function GET(
       );
     }
 
-    const history = await getClassificationHistory(params.id);
+    const { id } = await params;
+
+    const history = await getClassificationHistory(id);
 
     return NextResponse.json({
-      documentId: params.id,
+      documentId: id,
       history,
     });
   } catch (error: any) {
