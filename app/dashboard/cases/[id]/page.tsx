@@ -60,10 +60,12 @@ interface Document {
   id: string;
   fileName: string;
   fileType: string;
+  fileSize: number | null;
   category: string | null;
   subtype: string | null;
   confidence: number | null;
-  reviewStatus: string;
+  needsReview: boolean | null;
+  reviewedAt: string | null;
   dropboxPath: string | null;
   createdAt: string;
 }
@@ -78,11 +80,18 @@ const STATUS_COLORS: Record<string, string> = {
   closed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
 };
 
+const getReviewStatus = (doc: Document): string => {
+  if (doc.reviewedAt) return "reviewed";
+  if (doc.needsReview) return "needs_review";
+  if (doc.category) return "classified";
+  return "pending";
+};
+
 const REVIEW_STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  accepted: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
+  pending: "bg-gray-100 text-gray-800",
+  classified: "bg-blue-100 text-blue-800",
   needs_review: "bg-orange-100 text-orange-800",
+  reviewed: "bg-green-100 text-green-800",
 };
 
 export default function CaseDetailPage() {
@@ -150,9 +159,8 @@ export default function CaseDetailPage() {
   const stats = {
     total: documents.length,
     classified: documents.filter((d) => d.category).length,
-    needsReview: documents.filter((d) => d.reviewStatus === "needs_review")
-      .length,
-    accepted: documents.filter((d) => d.reviewStatus === "accepted").length,
+    needsReview: documents.filter((d) => d.needsReview).length,
+    reviewed: documents.filter((d) => d.reviewedAt).length,
   };
 
   if (loading) {
@@ -276,8 +284,8 @@ export default function CaseDetailPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Accepted</p>
-                <p className="text-2xl font-bold">{stats.accepted}</p>
+                <p className="text-sm text-muted-foreground">Reviewed</p>
+                <p className="text-2xl font-bold">{stats.reviewed}</p>
               </div>
               <Check className="h-8 w-8 text-blue-500" />
             </div>
@@ -392,10 +400,10 @@ export default function CaseDetailPage() {
                         <TableCell>
                           <Badge
                             className={
-                              REVIEW_STATUS_COLORS[doc.reviewStatus] || ""
+                              REVIEW_STATUS_COLORS[getReviewStatus(doc)] || ""
                             }
                           >
-                            {doc.reviewStatus.replace("_", " ")}
+                            {getReviewStatus(doc).replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell>
