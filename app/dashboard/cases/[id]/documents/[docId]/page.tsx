@@ -55,8 +55,7 @@ interface Document {
   category: string | null;
   subtype: string | null;
   confidence: number | null;
-  aiReasoning: string | null;
-  reviewStatus: string;
+  needsReview: boolean | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
   dropboxPath: string | null;
@@ -64,6 +63,13 @@ interface Document {
   createdAt: string;
   updatedAt: string;
 }
+
+const getReviewStatus = (doc: Document): string => {
+  if (doc.reviewedAt) return "reviewed";
+  if (doc.needsReview) return "needs_review";
+  if (doc.category) return "classified";
+  return "pending";
+};
 
 interface ClassificationHistory {
   id: string;
@@ -102,10 +108,10 @@ const SUBTYPES: Record<string, string[]> = {
 };
 
 const REVIEW_STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  accepted: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
+  pending: "bg-gray-100 text-gray-800",
+  classified: "bg-blue-100 text-blue-800",
   needs_review: "bg-orange-100 text-orange-800",
+  reviewed: "bg-green-100 text-green-800",
 };
 
 export default function DocumentViewerPage() {
@@ -295,9 +301,9 @@ export default function DocumentViewerPage() {
           </h1>
           <div className="flex items-center gap-2 mt-2">
             <Badge
-              className={REVIEW_STATUS_COLORS[document.reviewStatus] || ""}
+              className={REVIEW_STATUS_COLORS[getReviewStatus(document)] || ""}
             >
-              {document.reviewStatus.replace("_", " ")}
+              {getReviewStatus(document).replace("_", " ")}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {(document.fileSize / 1024).toFixed(1)} KB
