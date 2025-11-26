@@ -268,6 +268,7 @@ export async function downloadAndStoreFile(
   const storagePath = `documents/${caseId}/${Date.now()}-${fileName}`;
 
   // Upload to Supabase Storage
+  console.log(`[Sync] Uploading to Supabase: ${storagePath}`);
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('case-documents')
     .upload(storagePath, fileBlob, {
@@ -276,10 +277,13 @@ export async function downloadAndStoreFile(
     });
 
   if (uploadError) {
+    console.error(`[Sync] Supabase upload error:`, uploadError);
     throw new Error(`Failed to upload file: ${uploadError.message}`);
   }
+  console.log(`[Sync] Supabase upload success: ${storagePath}`);
 
   // Create document record
+  console.log(`[Sync] Inserting document record for: ${fileName}`);
   const [document] = await db
     .insert(documentsTable)
     .values({
@@ -297,6 +301,8 @@ export async function downloadAndStoreFile(
       syncedAt: new Date(),
     })
     .returning();
+
+  console.log(`[Sync] Document record created: ${document.id}`);
 
   return {
     documentId: document.id,
@@ -385,9 +391,12 @@ export async function syncDropboxFolder(
 
       // Download and store file
       try {
-        await downloadAndStoreFile(userId, file.path, caseId, file);
+        console.log(`[Sync] Processing file ${i + 1}/${filesFound}: ${file.name}`);
+        const result = await downloadAndStoreFile(userId, file.path, caseId, file);
+        console.log(`[Sync] Successfully stored: ${file.name} -> ${result.documentId}`);
         filesNew++;
       } catch (error: any) {
+        console.error(`[Sync] Failed to process ${file.name}:`, error.message);
         filesError++;
         errors.push({
           file: file.name,
