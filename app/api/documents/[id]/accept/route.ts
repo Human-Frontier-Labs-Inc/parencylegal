@@ -9,7 +9,7 @@ import { acceptClassification } from "@/lib/ai/review";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -21,7 +21,8 @@ export async function POST(
       );
     }
 
-    const result = await acceptClassification(params.id, userId);
+    const { id } = await params;
+    const result = await acceptClassification(id, userId);
 
     return NextResponse.json({
       success: result,

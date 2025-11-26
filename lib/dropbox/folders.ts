@@ -1,11 +1,12 @@
 /**
  * Dropbox Folder Operations
  * Handles folder browsing, search, and metadata retrieval
+ * Using direct fetch API instead of SDK for serverless compatibility
  */
 
-import { Dropbox, files } from 'dropbox';
+import { Dropbox } from 'dropbox';
 import { getDropboxConnection, isTokenExpired, updateDropboxTokens } from '@/db/queries/dropbox-queries';
-import { refreshDropboxToken, createDropboxClient } from './oauth';
+import { refreshDropboxToken } from './oauth';
 
 // Types
 export interface DropboxFolder {
@@ -34,10 +35,10 @@ export interface FolderContents {
 }
 
 /**
- * Get an authenticated Dropbox client for a user
+ * Get a valid access token for a user
  * Handles token refresh if needed
  */
-export async function getDropboxClientForUser(userId: string): Promise<Dropbox> {
+export async function getAccessTokenForUser(userId: string): Promise<string> {
   const connection = await getDropboxConnection(userId);
 
   if (!connection) {
@@ -54,13 +55,13 @@ export async function getDropboxClientForUser(userId: string): Promise<Dropbox> 
       const newTokens = await refreshDropboxToken(connection.refreshToken);
       newTokens.account_id = connection.dropboxAccountId;
       await updateDropboxTokens(userId, newTokens);
-      return createDropboxClient(newTokens.access_token);
+      return newTokens.access_token;
     } catch (error) {
       throw new Error('Dropbox connection invalid - token refresh failed');
     }
   }
 
-  return createDropboxClient(connection.accessToken);
+  return connection.accessToken;
 }
 
 /**
@@ -71,29 +72,61 @@ export async function listDropboxFolders(
   path: string = '',
   cursor?: string
 ): Promise<FolderContents> {
-  const dbx = await getDropboxClientForUser(userId);
+  const accessToken = await getAccessTokenForUser(userId);
 
   try {
-    let response: files.ListFolderResult;
+    let response;
 
     if (cursor) {
       // Continue from previous cursor
-      response = (await dbx.filesListFolderContinue({ cursor })).result;
+      response = await fetch('https://api.dropboxapi.com/2/files/list_folder/continue', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cursor }),
+      });
     } else {
       // Start fresh listing
       const listPath = path === '/' ? '' : path;
-      response = (await dbx.filesListFolder({
-        path: listPath,
-        recursive: false,
-        include_mounted_folders: true,
-        include_non_downloadable_files: false,
-      })).result;
+      response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          path: listPath,
+          recursive: false,
+          include_mounted_folders: true,
+          include_non_downloadable_files: false,
+        }),
+      });
     }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error listing Dropbox folders:', response.status, errorText);
+
+      if (response.status === 409) {
+        throw new Error('Folder not found');
+      }
+      if (response.status === 401) {
+        throw new Error('Dropbox connection invalid');
+      }
+      if (response.status === 429) {
+        throw new Error('Rate limited - please try again later');
+      }
+      throw new Error('Failed to list Dropbox folders');
+    }
+
+    const result = await response.json();
 
     const folders: DropboxFolder[] = [];
     const files: DropboxFile[] = [];
 
-    for (const entry of response.entries) {
+    for (const entry of result.entries) {
       if (entry['.tag'] === 'folder') {
         folders.push({
           id: entry.id || '',
@@ -102,16 +135,15 @@ export async function listDropboxFolders(
           pathDisplay: entry.path_display || entry.name,
         });
       } else if (entry['.tag'] === 'file') {
-        const fileEntry = entry as files.FileMetadata;
         files.push({
-          id: fileEntry.id,
-          name: fileEntry.name,
-          path: fileEntry.path_lower || '',
-          pathDisplay: fileEntry.path_display || fileEntry.name,
-          size: fileEntry.size,
-          serverModified: new Date(fileEntry.server_modified),
-          contentHash: fileEntry.content_hash,
-          isDownloadable: fileEntry.is_downloadable !== false,
+          id: entry.id,
+          name: entry.name,
+          path: entry.path_lower || '',
+          pathDisplay: entry.path_display || entry.name,
+          size: entry.size,
+          serverModified: new Date(entry.server_modified),
+          contentHash: entry.content_hash,
+          isDownloadable: entry.is_downloadable !== false,
         });
       }
     }
@@ -119,24 +151,12 @@ export async function listDropboxFolders(
     return {
       folders,
       files,
-      hasMore: response.has_more,
-      cursor: response.cursor,
+      hasMore: result.has_more,
+      cursor: result.cursor,
     };
   } catch (error: any) {
     console.error('Error listing Dropbox folders:', error);
-
-    if (error.status === 409) {
-      // Path not found
-      throw new Error('Folder not found');
-    }
-    if (error.status === 401) {
-      throw new Error('Dropbox connection invalid');
-    }
-    if (error.status === 429) {
-      throw new Error('Rate limited - please try again later');
-    }
-
-    throw new Error('Failed to list Dropbox folders');
+    throw error;
   }
 }
 
@@ -147,14 +167,29 @@ export async function getDropboxFolderMetadata(
   userId: string,
   pathOrId: string
 ): Promise<DropboxFolder> {
-  const dbx = await getDropboxClientForUser(userId);
+  const accessToken = await getAccessTokenForUser(userId);
 
   try {
-    const response = await dbx.filesGetMetadata({
-      path: pathOrId,
+    const response = await fetch('https://api.dropboxapi.com/2/files/get_metadata', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path: pathOrId }),
     });
 
-    const entry = response.result;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error getting folder metadata:', response.status, errorText);
+
+      if (response.status === 409) {
+        throw new Error('Folder not found');
+      }
+      throw new Error('Failed to get folder metadata');
+    }
+
+    const entry = await response.json();
 
     if (entry['.tag'] !== 'folder') {
       throw new Error('Path is not a folder');
@@ -168,12 +203,7 @@ export async function getDropboxFolderMetadata(
     };
   } catch (error: any) {
     console.error('Error getting folder metadata:', error);
-
-    if (error.status === 409) {
-      throw new Error('Folder not found');
-    }
-
-    throw new Error('Failed to get folder metadata');
+    throw error;
   }
 }
 
@@ -185,22 +215,36 @@ export async function searchDropboxFolders(
   query: string,
   maxResults: number = 20
 ): Promise<DropboxFolder[]> {
-  const dbx = await getDropboxClientForUser(userId);
+  const accessToken = await getAccessTokenForUser(userId);
 
   try {
-    const response = await dbx.filesSearchV2({
-      query,
-      options: {
-        path: '',
-        max_results: maxResults,
-        file_status: 'active',
-        filename_only: false,
+    const response = await fetch('https://api.dropboxapi.com/2/files/search_v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        query,
+        options: {
+          path: '',
+          max_results: maxResults,
+          file_status: 'active',
+          filename_only: false,
+        },
+      }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error searching Dropbox folders:', response.status, errorText);
+      throw new Error('Failed to search Dropbox folders');
+    }
+
+    const result = await response.json();
     const folders: DropboxFolder[] = [];
 
-    for (const match of response.result.matches) {
+    for (const match of result.matches) {
       if (match.metadata['.tag'] === 'metadata') {
         const metadata = match.metadata.metadata;
         if (metadata['.tag'] === 'folder') {
@@ -255,15 +299,19 @@ export async function getFolderStats(
       totalSize += file.size;
     }
 
-    // Recursively count subfolders (optional, can be expensive)
-    // for (const folder of contents.folders) {
-    //   const subStats = await getFolderStats(userId, folder.path);
-    //   fileCount += subStats.fileCount;
-    //   totalSize += subStats.totalSize;
-    // }
-
     cursor = contents.hasMore ? contents.cursor : undefined;
   } while (cursor);
 
   return { fileCount, totalSize };
+}
+
+/**
+ * Get an authenticated Dropbox client instance for a user
+ * @deprecated Use getAccessTokenForUser() with direct fetch API instead for serverless compatibility
+ * The Dropbox SDK has issues with `this.fetch` in Vercel serverless
+ */
+export async function getDropboxClientForUser(userId: string): Promise<Dropbox> {
+  console.warn('getDropboxClientForUser is deprecated - use getAccessTokenForUser with fetch API');
+  const accessToken = await getAccessTokenForUser(userId);
+  return new Dropbox({ accessToken });
 }

@@ -13,7 +13,7 @@ import { overrideClassification } from "@/lib/ai/review";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -25,10 +25,12 @@ export async function GET(
       );
     }
 
+    const { id } = await params;
+
     const [document] = await db
       .select()
       .from(documentsTable)
-      .where(eq(documentsTable.id, params.id))
+      .where(eq(documentsTable.id, id))
       .limit(1);
 
     if (!document) {
@@ -67,7 +69,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -79,6 +81,8 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
+
     const body = await request.json();
     const { category, subtype } = body;
 
@@ -89,7 +93,7 @@ export async function PUT(
       );
     }
 
-    const result = await overrideClassification(params.id, userId, {
+    const result = await overrideClassification(id, userId, {
       category,
       subtype,
     });

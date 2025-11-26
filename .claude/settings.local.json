@@ -34,7 +34,10 @@
       "Bash(vercel ls:*)",
       "Bash(printf:*)",
       "Bash(vercel inspect:*)",
-      "Bash(vercel --prod)"
+      "Bash(vercel --prod)",
+      "Bash(vercel logs:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   },
