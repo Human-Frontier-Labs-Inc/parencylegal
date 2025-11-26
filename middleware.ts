@@ -44,7 +44,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Handle successful payment redirect after Stripe checkout
   if (req.nextUrl.pathname.startsWith('/dashboard') && req.nextUrl.search.includes('session_id')) {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     // If user is authenticated and just returned from Stripe checkout
     if (userId) {
@@ -56,7 +56,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  const { userId, redirectToSignIn } = auth();
+  const { userId, redirectToSignIn } = await auth();
 
   // Standard route protection logic
   if (!userId && isProtectedRoute(req)) {
