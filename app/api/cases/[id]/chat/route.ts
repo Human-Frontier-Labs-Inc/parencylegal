@@ -95,30 +95,35 @@ export async function POST(
     if (includeContext) {
       try {
         const searchResult = await semanticSearch(caseId, message, 5, 0.6);
-        contextTokensUsed = searchResult.tokensUsed;
+        contextTokensUsed = searchResult.tokensUsed || 0;
 
-        // Get document names for context
-        const docIds = [...new Set(searchResult.chunks.map((c) => c.documentId))];
-        const docs = docIds.length > 0
-          ? await db
-              .select({ id: documentsTable.id, fileName: documentsTable.fileName })
-              .from(documentsTable)
-              .where(eq(documentsTable.caseId, caseId))
-          : [];
+        // Safely handle chunks - may be undefined or empty
+        const chunks = searchResult.chunks || [];
 
-        const docMap = docs.reduce((acc, d) => {
-          acc[d.id] = d.fileName;
-          return acc;
-        }, {} as Record<string, string>);
+        if (chunks.length > 0) {
+          // Get document names for context
+          const docIds = [...new Set(chunks.map((c) => c.documentId))];
+          const docs = docIds.length > 0
+            ? await db
+                .select({ id: documentsTable.id, fileName: documentsTable.fileName })
+                .from(documentsTable)
+                .where(eq(documentsTable.caseId, caseId))
+            : [];
 
-        contextChunks = searchResult.chunks.map((chunk) => ({
-          content: chunk.content,
-          documentName: docMap[chunk.documentId] || "Unknown",
-          similarity: chunk.similarity,
-        }));
+          const docMap = docs.reduce((acc, d) => {
+            acc[d.id] = d.fileName;
+            return acc;
+          }, {} as Record<string, string>);
+
+          contextChunks = chunks.map((chunk) => ({
+            content: chunk.content,
+            documentName: docMap[chunk.documentId] || "Unknown",
+            similarity: chunk.similarity,
+          }));
+        }
       } catch (error) {
         console.error("[Chat] Failed to get context:", error);
-        // Continue without context
+        // Continue without context - the AI will respond based on general knowledge
       }
     }
 
