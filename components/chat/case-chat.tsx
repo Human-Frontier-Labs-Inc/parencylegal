@@ -49,12 +49,14 @@ export function CaseChat({ caseId, caseName }: CaseChatProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Check if documents need embedding on first chat with no context
+  // Check if documents need embedding - only show prompt if we got a response with 0 context
+  // Reset needsEmbedding when context is found
   useEffect(() => {
-    if (messages.length === 1 && contextCount === 0 && !needsEmbedding) {
-      setNeedsEmbedding(true);
+    if (contextCount > 0) {
+      // We have context, no need to show the embed prompt
+      setNeedsEmbedding(false);
     }
-  }, [messages.length, contextCount]);
+  }, [contextCount]);
 
   const handleEmbedDocuments = async () => {
     setIsEmbedding(true);
@@ -158,7 +160,14 @@ export function CaseChat({ caseId, caseName }: CaseChatProps) {
                 setStreamingContent(fullContent);
               } else if (data.type === "done") {
                 setSessionId(data.sessionId);
-                setContextCount(data.contextChunks || 0);
+                const chunks = data.contextChunks || 0;
+                setContextCount(chunks);
+                // Show embed prompt only if this is the first message and no context was found
+                if (chunks === 0 && messages.length === 0) {
+                  setNeedsEmbedding(true);
+                } else {
+                  setNeedsEmbedding(false);
+                }
               } else if (data.type === "error") {
                 throw new Error(data.error);
               }
