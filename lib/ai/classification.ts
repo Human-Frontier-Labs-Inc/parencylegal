@@ -1,13 +1,14 @@
 /**
  * Document Classification Engine
  * Handles text extraction and document classification
- * Note: pdf-parse has issues in serverless, using dynamic import with fallback
+ * Uses unpdf for serverless-compatible PDF parsing
  */
 
 import { db } from '@/db/db';
 import { documentsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createClient } from '@supabase/supabase-js';
+import { extractText as unpdfExtractText, getDocumentProxy } from 'unpdf';
 import {
   classifyDocument as aiClassify,
   updateDocumentClassification,
@@ -36,23 +37,43 @@ export interface ClassificationPipelineResult extends ClassificationResult {
 }
 
 /**
- * Extract text from a PDF file
- * Note: pdf-parse has issues in Vercel serverless due to pdfjs-dist requiring DOMMatrix
- * For now, we'll use the filename and let AI classify based on that
- * TODO: Use a serverless-compatible PDF parser or external service
+ * Extract text from a PDF file using unpdf (serverless-compatible)
  */
 export async function extractTextFromPDF(fileBuffer: Buffer): Promise<ExtractedText> {
-  // pdf-parse doesn't work reliably in Vercel serverless environment
-  // due to pdfjs-dist requiring browser APIs (DOMMatrix, Canvas, etc.)
-  // Return empty text - classification will use filename-based approach
-  console.log('[Classification] PDF text extraction skipped in serverless - using filename-based classification');
+  try {
+    console.log('[Classification] Starting PDF text extraction with unpdf...');
 
-  return {
-    text: '',
-    pages: 1,
-    isScanned: true,
-    wordCount: 0,
-  };
+    // Convert Buffer to Uint8Array for unpdf
+    const uint8Array = new Uint8Array(fileBuffer);
+
+    // Get document proxy to access page count
+    const pdf = await getDocumentProxy(uint8Array);
+    const pageCount = pdf.numPages;
+
+    // Extract text from all pages
+    const { text } = await unpdfExtractText(uint8Array, { mergePages: true });
+
+    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+    const isScanned = wordCount < 50; // Likely scanned if very few words extracted
+
+    console.log(`[Classification] Extracted ${wordCount} words from ${pageCount} pages`);
+
+    return {
+      text,
+      pages: pageCount,
+      isScanned,
+      wordCount,
+    };
+  } catch (error) {
+    console.error('[Classification] PDF extraction failed:', error);
+    // Fallback to empty text - will use filename-based classification
+    return {
+      text: '',
+      pages: 1,
+      isScanned: true,
+      wordCount: 0,
+    };
+  }
 }
 
 /**
@@ -234,14 +255,20 @@ export async function classifyAndStore(
   }
 
   const fileBuffer = Buffer.from(await fileData.arrayBuffer());
-  const mimeType = document.fileType || 'application/pdf';
+  // fileType from DB may be just 'pdf' or full MIME type 'application/pdf'
+  let mimeType = document.fileType || 'application/pdf';
+  if (!mimeType.includes('/')) {
+    mimeType = `application/${mimeType}`;
+  }
+
+  console.log(`[Classification] Processing document: ${document.fileName}, MIME: ${mimeType}`);
 
   // Extract text
   let extractedText: ExtractedText;
   let extractionMethod: 'pdf-parse' | 'ocr' | 'text' = 'pdf-parse';
 
   try {
-    extractedText = await extractText(fileBuffer, `application/${mimeType}`);
+    extractedText = await extractText(fileBuffer, mimeType);
 
     // If scanned, try OCR
     if (extractedText.isScanned && extractedText.wordCount < 50) {
