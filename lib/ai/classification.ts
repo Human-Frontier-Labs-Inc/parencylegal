@@ -9,7 +9,7 @@ import { documentsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createClient } from '@supabase/supabase-js';
 // Dynamic import for unpdf to avoid serverless bundling issues
-let unpdfModule: { extractText: Function; getDocumentProxy: Function } | null = null;
+let unpdfModule: { extractText: Function } | null = null;
 
 async function getUnpdf() {
   if (!unpdfModule) {
@@ -52,19 +52,17 @@ export async function extractTextFromPDF(fileBuffer: Buffer): Promise<ExtractedT
     console.log('[Classification] Starting PDF text extraction with unpdf...');
 
     // Dynamic import to avoid serverless bundling issues
-    const { extractText: unpdfExtractText, getDocumentProxy } = await getUnpdf();
+    const { extractText: unpdfExtractText } = await getUnpdf();
 
     // Convert Buffer to Uint8Array for unpdf
     const uint8Array = new Uint8Array(fileBuffer);
 
-    // Get document proxy to access page count
-    const pdf = await getDocumentProxy(uint8Array);
-    const pageCount = pdf.numPages;
+    // Extract text directly (simpler, avoids worker issues)
+    const result = await unpdfExtractText(uint8Array, { mergePages: true });
+    const text = result.text || '';
+    const pageCount = result.totalPages || 1;
 
-    // Extract text from all pages
-    const { text } = await unpdfExtractText(uint8Array, { mergePages: true });
-
-    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+    const wordCount = text.split(/\s+/).filter((w: string) => w.length > 0).length;
     const isScanned = wordCount < 50; // Likely scanned if very few words extracted
 
     console.log(`[Classification] Extracted ${wordCount} words from ${pageCount} pages`);
@@ -305,6 +303,7 @@ export async function classifyAndStore(
     documentId,
     extractedText.text,
     document.caseId,
+    userId,
     undefined, // onChunk
     document.fileName // filename for fallback classification
   );
