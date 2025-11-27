@@ -170,6 +170,7 @@ export async function findSimilarChunks(
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
 
   try {
+    // Note: With postgres.js driver, db.execute returns the array directly (not { rows: [...] })
     const result = await db.execute(sql`
       SELECT
         id,
@@ -186,8 +187,13 @@ export async function findSimilarChunks(
       LIMIT ${limit}
     `);
 
-    // Safely handle the result - rows might be undefined if table is empty or no matches
-    return (result.rows || []) as SimilarChunk[];
+    // postgres.js returns array directly, other drivers return { rows: [...] }
+    // Handle both cases for safety
+    const rows = Array.isArray(result) ? result : (result as any).rows || [];
+
+    console.log(`[Embeddings] findSimilarChunks found ${rows.length} chunks for case ${caseId}`);
+
+    return rows as SimilarChunk[];
   } catch (error) {
     console.error('[Embeddings] findSimilarChunks error:', error);
     // Return empty array on error (e.g., table doesn't exist yet, no embeddings)
@@ -208,11 +214,15 @@ export async function semanticSearch(
   query: string;
   tokensUsed: number;
 }> {
+  console.log(`[Embeddings] semanticSearch starting for case ${caseId}, query: "${query.substring(0, 50)}..."`);
+
   // Generate embedding for query
   const { embedding, tokensUsed } = await generateEmbedding(query);
+  console.log(`[Embeddings] Generated query embedding, ${tokensUsed} tokens, ${embedding.length} dimensions`);
 
   // Find similar chunks
   const chunks = await findSimilarChunks(caseId, embedding, limit, minSimilarity);
+  console.log(`[Embeddings] semanticSearch returning ${chunks.length} chunks`);
 
   return {
     chunks,

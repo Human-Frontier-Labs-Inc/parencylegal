@@ -94,7 +94,8 @@ export async function POST(
 
     if (includeContext) {
       try {
-        const searchResult = await semanticSearch(caseId, message, 5, 0.6);
+        // Lower similarity threshold to 0.3 to be more permissive in finding relevant content
+        const searchResult = await semanticSearch(caseId, message, 5, 0.3);
         contextTokensUsed = searchResult.tokensUsed || 0;
 
         // Safely handle chunks - may be undefined or empty
