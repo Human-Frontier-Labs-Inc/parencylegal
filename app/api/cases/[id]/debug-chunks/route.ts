@@ -68,6 +68,19 @@ export async function GET(
       LIMIT 5
     `);
 
+    // Check ALL documents in the system (to see if case_id mismatch)
+    const allDocs = await db.execute(sql`
+      SELECT case_id, COUNT(*) as count
+      FROM documents
+      GROUP BY case_id
+      LIMIT 10
+    `);
+
+    // Check if case exists
+    const caseCheck = await db.execute(sql`
+      SELECT id, name, user_id FROM cases WHERE id = ${caseId}
+    `);
+
     // The result from postgres.js is the array directly
     const tableExists = Array.isArray(tableCheck) ? tableCheck[0]?.exists : (tableCheck as any).rows?.[0]?.exists;
     const count = Array.isArray(chunkCount) ? chunkCount[0]?.count : (chunkCount as any).rows?.[0]?.count;
@@ -75,6 +88,9 @@ export async function GET(
     const pgvectorExists = Array.isArray(pgvectorCheck) ? pgvectorCheck[0]?.exists : (pgvectorCheck as any).rows?.[0]?.exists;
     const docStats = Array.isArray(docsStatus) ? docsStatus[0] : (docsStatus as any).rows?.[0];
     const docs = Array.isArray(docDetails) ? docDetails : (docDetails as any).rows || [];
+
+    const allDocsResult = Array.isArray(allDocs) ? allDocs : (allDocs as any).rows || [];
+    const caseData = Array.isArray(caseCheck) ? caseCheck[0] : (caseCheck as any).rows?.[0];
 
     return NextResponse.json({
       caseId,
@@ -86,6 +102,8 @@ export async function GET(
         stats: docStats,
         samples: docs,
       },
+      caseInfo: caseData,
+      allDocumentsByCaseId: allDocsResult,
       debug: {
         tableCheckType: typeof tableCheck,
         tableCheckIsArray: Array.isArray(tableCheck),
