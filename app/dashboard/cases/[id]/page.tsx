@@ -66,10 +66,18 @@ interface Document {
   fileSize: number | null;
   category: string | null;
   subtype: string | null;
-  confidence: number | null;
+  confidence: number | null; // 0-100 from database
   needsReview: boolean | null;
   reviewedAt: string | null;
   dropboxPath: string | null;
+  metadata: {
+    summary?: string;
+    parties?: string[];
+    amounts?: number[];
+    startDate?: string;
+    endDate?: string;
+    [key: string]: any;
+  } | null;
   createdAt: string;
 }
 
@@ -432,9 +440,9 @@ export default function CaseDetailPage() {
                     <TableRow>
                       <TableHead>File Name</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead className="max-w-xs">Summary</TableHead>
                       <TableHead>Confidence</TableHead>
-                      <TableHead>Review Status</TableHead>
-                      <TableHead>Synced</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -463,23 +471,34 @@ export default function CaseDetailPage() {
                             </span>
                           )}
                         </TableCell>
+                        <TableCell className="max-w-xs">
+                          {doc.metadata?.summary ? (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {doc.metadata.summary}
+                            </p>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">
+                              {doc.category ? "No summary" : "Pending analysis"}
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {doc.confidence !== null ? (
                             <div className="flex items-center">
                               <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                                 <div
                                   className={`h-2 rounded-full ${
-                                    doc.confidence >= 0.8
+                                    doc.confidence >= 80
                                       ? "bg-green-500"
-                                      : doc.confidence >= 0.6
+                                      : doc.confidence >= 60
                                       ? "bg-yellow-500"
                                       : "bg-red-500"
                                   }`}
-                                  style={{ width: `${doc.confidence * 100}%` }}
+                                  style={{ width: `${doc.confidence}%` }}
                                 />
                               </div>
                               <span className="text-sm">
-                                {Math.round(doc.confidence * 100)}%
+                                {doc.confidence}%
                               </span>
                             </div>
                           ) : (
@@ -494,12 +513,6 @@ export default function CaseDetailPage() {
                           >
                             {getReviewStatus(doc).replace("_", " ")}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm flex items-center">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {new Date(doc.createdAt).toLocaleDateString()}
-                          </span>
                         </TableCell>
                         <TableCell className="text-right">
                           <Link
