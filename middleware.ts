@@ -2,12 +2,20 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isApiRoute = createRouteMatcher(["/api(.*)"]);
 
 // Clerk middleware with custom logic for payment redirects and webhook handling
 export default clerkMiddleware(async (auth, req) => {
-  // Skip auth for Stripe webhook endpoints
+  // Skip auth for Stripe webhook endpoints (but still let Clerk process)
   if (req.nextUrl.pathname.startsWith('/api/stripe/webhooks')) {
     console.log("Skipping Clerk auth for Stripe webhook endpoint");
+    return NextResponse.next();
+  }
+
+  // For API routes, just let Clerk handle auth context and continue
+  // Don't redirect or modify - just ensure auth() context is available
+  if (isApiRoute(req) && !req.nextUrl.pathname.startsWith('/api/stripe/webhooks')) {
+    // Let Clerk set up auth context, then pass through
     return NextResponse.next();
   }
   
