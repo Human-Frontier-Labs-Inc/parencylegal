@@ -30,11 +30,12 @@ export interface ClassificationResult {
 export interface ChatSession {
   id: string;
   caseId: string;
+  userId: string;
   documentId?: string;
-  responseId?: string;
   messages: Array<{ role: string; content: string; timestamp: string }>;
-  totalTokens: number;
-  totalCost: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCost: number; // in cents
   createdAt: Date;
   updatedAt: Date;
 }
@@ -161,11 +162,12 @@ export async function createAIChatSession(
   return {
     id: session.id,
     caseId: session.caseId,
+    userId: session.userId,
     documentId: session.documentId || undefined,
-    responseId: session.responseId || undefined,
     messages: (session.messages || []) as ChatSession['messages'],
-    totalTokens: session.totalTokens || 0,
-    totalCost: Number(session.totalCost) || 0,
+    totalInputTokens: session.totalInputTokens || 0,
+    totalOutputTokens: session.totalOutputTokens || 0,
+    totalCost: session.totalCost || 0,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
   };
@@ -186,11 +188,12 @@ export async function getChatSession(sessionId: string): Promise<ChatSession | n
   return {
     id: session.id,
     caseId: session.caseId,
+    userId: session.userId,
     documentId: session.documentId || undefined,
-    responseId: session.responseId || undefined,
     messages: (session.messages || []) as ChatSession['messages'],
-    totalTokens: session.totalTokens || 0,
-    totalCost: Number(session.totalCost) || 0,
+    totalInputTokens: session.totalInputTokens || 0,
+    totalOutputTokens: session.totalOutputTokens || 0,
+    totalCost: session.totalCost || 0,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
   };
@@ -310,20 +313,24 @@ export async function classifyDocument(
       throw new Error('Invalid response from AI');
     }
 
-    // Calculate cost
+    // Calculate cost in cents (schema stores as integer cents)
     const inputTokens = response.usage?.prompt_tokens || 0;
     const outputTokens = response.usage?.completion_tokens || 0;
-    const cost = (inputTokens / 1000) * INPUT_COST_PER_1K + (outputTokens / 1000) * OUTPUT_COST_PER_1K;
+    const costDollars = (inputTokens / 1000) * INPUT_COST_PER_1K + (outputTokens / 1000) * OUTPUT_COST_PER_1K;
+    const costCents = Math.round(costDollars * 100 * 100) / 100; // Convert to cents, keep 2 decimal precision then round
 
     // Update session if exists
     if (session) {
       await db
         .update(aiChatSessionsTable)
         .set({
-          totalTokens: session.totalTokens + tokensUsed,
-          totalCost: String(session.totalCost + cost),
-          responseId: response.id,
-          lastClassification: parsed,
+          totalInputTokens: session.totalInputTokens + inputTokens,
+          totalOutputTokens: session.totalOutputTokens + outputTokens,
+          totalCost: Math.round(session.totalCost + costCents), // Must be integer (cents)
+          metadata: {
+            lastResponseId: response.id,
+            lastClassification: parsed,
+          },
         })
         .where(eq(aiChatSessionsTable.id, session.id));
     }
