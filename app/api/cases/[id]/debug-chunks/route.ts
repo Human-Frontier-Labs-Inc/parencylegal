@@ -81,6 +81,11 @@ export async function GET(
       SELECT id, name, user_id FROM cases WHERE id = ${caseId}
     `);
 
+    // Check ALL cases to see what exists
+    const allCases = await db.execute(sql`
+      SELECT id, name FROM cases LIMIT 10
+    `);
+
     // The result from postgres.js is the array directly
     const tableExists = Array.isArray(tableCheck) ? tableCheck[0]?.exists : (tableCheck as any).rows?.[0]?.exists;
     const count = Array.isArray(chunkCount) ? chunkCount[0]?.count : (chunkCount as any).rows?.[0]?.count;
@@ -91,6 +96,7 @@ export async function GET(
 
     const allDocsResult = Array.isArray(allDocs) ? allDocs : (allDocs as any).rows || [];
     const caseData = Array.isArray(caseCheck) ? caseCheck[0] : (caseCheck as any).rows?.[0];
+    const allCasesResult = Array.isArray(allCases) ? allCases : (allCases as any).rows || [];
 
     return NextResponse.json({
       caseId,
@@ -102,7 +108,8 @@ export async function GET(
         stats: docStats,
         samples: docs,
       },
-      caseInfo: caseData,
+      caseInfo: caseData || "NOT FOUND - case does not exist with this ID",
+      allCases: allCasesResult,
       allDocumentsByCaseId: allDocsResult,
       debug: {
         tableCheckType: typeof tableCheck,
