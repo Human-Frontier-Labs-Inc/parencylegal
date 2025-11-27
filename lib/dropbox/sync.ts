@@ -9,6 +9,7 @@ import { documentsTable, casesTable, syncHistoryTable } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getAccessTokenForUser, listDropboxFolders, type DropboxFile } from './folders';
 import { createClient } from '@supabase/supabase-js';
+import { addToQueue } from '@/lib/queue/document-processing';
 
 // Initialize Supabase client for storage
 const supabase = createClient(
@@ -26,6 +27,7 @@ export interface SyncResult {
   filesUpdated: number;
   filesSkipped: number;
   filesError: number;
+  filesQueued: number; // New: Count of files queued for classification
   errors: Array<{ file: string; error: string; timestamp: string }>;
   startedAt: Date;
   completedAt?: Date;
@@ -111,6 +113,7 @@ export async function startSync(
     filesUpdated: 0,
     filesSkipped: 0,
     filesError: 0,
+    filesQueued: 0,
     errors: [],
     startedAt: syncRecord.startedAt,
   };
@@ -333,6 +336,8 @@ export async function syncDropboxFolder(
   let filesUpdated = 0;
   let filesSkipped = 0;
   let filesError = 0;
+  let filesQueued = 0;
+  const newDocumentIds: string[] = []; // Track new documents for queueing
 
   try {
     // Get all files from Dropbox folder (recursively)
@@ -395,6 +400,7 @@ export async function syncDropboxFolder(
         const result = await downloadAndStoreFile(userId, file.path, caseId, file);
         console.log(`[Sync] Successfully stored: ${file.name} -> ${result.documentId}`);
         filesNew++;
+        newDocumentIds.push(result.documentId); // Track for classification queue
       } catch (error: any) {
         console.error(`[Sync] Failed to process ${file.name}:`, error.message);
         filesError++;
@@ -404,6 +410,21 @@ export async function syncDropboxFolder(
           timestamp: new Date().toISOString(),
         });
       }
+    }
+
+    // Queue all new documents for classification
+    if (newDocumentIds.length > 0) {
+      console.log(`[Sync] Queueing ${newDocumentIds.length} documents for classification`);
+      for (const documentId of newDocumentIds) {
+        try {
+          await addToQueue(documentId, caseId, userId, 0);
+          filesQueued++;
+        } catch (queueError: any) {
+          console.error(`[Sync] Failed to queue document ${documentId}:`, queueError.message);
+          // Don't fail the sync for queue errors
+        }
+      }
+      console.log(`[Sync] Queued ${filesQueued} documents for classification`);
     }
 
     // Update case lastSyncedAt
@@ -428,6 +449,7 @@ export async function syncDropboxFolder(
         errors: errors.length > 0 ? errors : null,
         completedAt,
         durationMs,
+        // Note: filesQueued not stored in sync_history but included in response
       })
       .where(eq(syncHistoryTable.id, syncResult.syncId));
 
@@ -444,6 +466,7 @@ export async function syncDropboxFolder(
       filesUpdated,
       filesSkipped,
       filesError,
+      filesQueued,
       errors,
       completedAt,
       durationMs,
