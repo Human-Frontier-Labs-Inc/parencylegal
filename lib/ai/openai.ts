@@ -140,16 +140,19 @@ function getClient(): OpenAI {
  */
 export async function createAIChatSession(
   caseId: string,
+  userId: string,
   documentId?: string
 ): Promise<ChatSession> {
   const [session] = await db
     .insert(aiChatSessionsTable)
     .values({
       caseId,
+      userId,
       documentId,
-      purpose: 'classification',
+      type: 'classification',
       status: 'active',
-      totalTokens: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
       totalCost: 0,
       messages: [],
     })
@@ -263,6 +266,7 @@ export async function classifyDocument(
   documentId: string,
   documentText: string,
   caseId?: string,
+  userId?: string,
   onChunk?: (chunk: string) => void,
   fileName?: string
 ): Promise<ClassificationResult> {
@@ -270,8 +274,8 @@ export async function classifyDocument(
 
   // Create or reuse session
   let session: ChatSession | undefined;
-  if (caseId) {
-    session = await createAIChatSession(caseId, documentId);
+  if (caseId && userId) {
+    session = await createAIChatSession(caseId, userId, documentId);
   }
 
   const prompt = getClassificationPrompt(documentText, fileName);
