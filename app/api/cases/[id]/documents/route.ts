@@ -48,6 +48,7 @@ export async function GET(
         needsReview: documentsTable.needsReview,
         reviewedAt: documentsTable.reviewedAt,
         dropboxPath: documentsTable.dropboxPath,
+        metadata: documentsTable.metadata,
         createdAt: documentsTable.createdAt,
       })
       .from(documentsTable)
