@@ -47,6 +47,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { CaseChat } from "@/components/chat/case-chat";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -508,6 +509,12 @@ export default function CaseDetailPage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="chat">
+            <span className="flex items-center gap-1">
+              AI Chat
+              <Sparkles className="h-3 w-3" />
+            </span>
+          </TabsTrigger>
           <TabsTrigger value="info">Case Info</TabsTrigger>
           <TabsTrigger value="dropbox">Dropbox</TabsTrigger>
         </TabsList>
@@ -705,6 +712,14 @@ export default function CaseDetailPage() {
                   <p className="text-sm">{caseData.notes}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="chat">
+          <Card>
+            <CardContent className="p-0">
+              <CaseChat caseId={caseId} caseName={caseData.name} />
             </CardContent>
           </Card>
         </TabsContent>
