@@ -21,6 +21,8 @@ import {
   Sparkles,
   FileText,
   RefreshCw,
+  Zap,
+  AlertCircle,
 } from "lucide-react";
 
 interface Message {
@@ -41,8 +43,62 @@ export function CaseChat({ caseId, caseName }: CaseChatProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState("");
   const [contextCount, setContextCount] = useState(0);
+  const [isEmbedding, setIsEmbedding] = useState(false);
+  const [embedError, setEmbedError] = useState<string | null>(null);
+  const [needsEmbedding, setNeedsEmbedding] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Check if documents need embedding on first chat with no context
+  useEffect(() => {
+    if (messages.length === 1 && contextCount === 0 && !needsEmbedding) {
+      setNeedsEmbedding(true);
+    }
+  }, [messages.length, contextCount]);
+
+  const handleEmbedDocuments = async () => {
+    setIsEmbedding(true);
+    setEmbedError(null);
+
+    try {
+      const response = await fetch(`/api/cases/${caseId}/embed-documents`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to embed documents");
+      }
+
+      if (data.processed > 0) {
+        setNeedsEmbedding(false);
+        // Add a system message
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `I've now indexed ${data.processed} documents for search. You can ask me questions about them!`,
+          },
+        ]);
+      } else if (data.alreadyEmbedded > 0) {
+        setNeedsEmbedding(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `Your documents are already indexed. Try asking a more specific question, or the documents may not contain relevant information.`,
+          },
+        ]);
+      } else {
+        setEmbedError("No documents to embed. Make sure documents are classified first.");
+      }
+    } catch (error: any) {
+      setEmbedError(error.message);
+    } finally {
+      setIsEmbedding(false);
+    }
+  };
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -262,6 +318,43 @@ export function CaseChat({ caseId, caseName }: CaseChatProps) {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Searching documents...
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Enable AI Search prompt */}
+            {needsEmbedding && !isLoading && (
+              <div className="flex gap-3 justify-start">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                </div>
+                <Card className="max-w-[80%] border-yellow-200 bg-yellow-50">
+                  <CardContent className="p-3">
+                    <p className="text-sm mb-3">
+                      Your documents haven't been indexed for AI search yet.
+                      Would you like me to index them now?
+                    </p>
+                    {embedError && (
+                      <p className="text-sm text-red-600 mb-2">{embedError}</p>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={handleEmbedDocuments}
+                      disabled={isEmbedding}
+                    >
+                      {isEmbedding ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Indexing documents...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4 mr-2" />
+                          Enable AI Search
+                        </>
+                      )}
+                    </Button>
                   </CardContent>
                 </Card>
               </div>

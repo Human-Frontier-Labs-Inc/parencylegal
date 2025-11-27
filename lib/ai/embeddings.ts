@@ -169,23 +169,30 @@ export async function findSimilarChunks(
   // 1 - cosine_distance = cosine_similarity
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
 
-  const result = await db.execute(sql`
-    SELECT
-      id,
-      document_id as "documentId",
-      content,
-      metadata,
-      chunk_index as "chunkIndex",
-      1 - (embedding <=> ${embeddingStr}::vector) as similarity
-    FROM document_chunks
-    WHERE case_id = ${caseId}
-      AND embedding IS NOT NULL
-      AND 1 - (embedding <=> ${embeddingStr}::vector) >= ${minSimilarity}
-    ORDER BY embedding <=> ${embeddingStr}::vector
-    LIMIT ${limit}
-  `);
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        id,
+        document_id as "documentId",
+        content,
+        metadata,
+        chunk_index as "chunkIndex",
+        1 - (embedding <=> ${embeddingStr}::vector) as similarity
+      FROM document_chunks
+      WHERE case_id = ${caseId}
+        AND embedding IS NOT NULL
+        AND 1 - (embedding <=> ${embeddingStr}::vector) >= ${minSimilarity}
+      ORDER BY embedding <=> ${embeddingStr}::vector
+      LIMIT ${limit}
+    `);
 
-  return result.rows as SimilarChunk[];
+    // Safely handle the result - rows might be undefined if table is empty or no matches
+    return (result.rows || []) as SimilarChunk[];
+  } catch (error) {
+    console.error('[Embeddings] findSimilarChunks error:', error);
+    // Return empty array on error (e.g., table doesn't exist yet, no embeddings)
+    return [];
+  }
 }
 
 /**
