@@ -162,6 +162,8 @@ export default function CaseDetailPage() {
   const [showAddRfpDialog, setShowAddRfpDialog] = useState(false);
   const [newRfp, setNewRfp] = useState({ type: 'RFP', number: 1, text: '', categoryHint: '' });
   const [addingRfp, setAddingRfp] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedRfp, setSelectedRfp] = useState<DiscoveryRequest | null>(null);
 
   useEffect(() => {
     fetchCaseData();
@@ -585,9 +587,17 @@ export default function CaseDetailPage() {
                         </TableCell>
                         <TableCell className="max-w-xs">
                           {doc.metadata?.summary ? (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {doc.metadata.summary}
-                            </p>
+                            <button
+                              onClick={() => setSelectedDocument(doc)}
+                              className="text-left hover:bg-muted/50 rounded p-1 -m-1 transition-colors"
+                            >
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {doc.metadata.summary}
+                              </p>
+                              <span className="text-xs text-blue-600 hover:underline">
+                                Click to read more
+                              </span>
+                            </button>
                           ) : (
                             <span className="text-muted-foreground text-sm">
                               {doc.category ? "No summary" : "Pending analysis"}
@@ -861,17 +871,24 @@ export default function CaseDetailPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {req.matchingDocumentCount > 0 ? (
-                              <div className="flex items-center text-green-600">
-                                <CheckCircle className="mr-1 h-4 w-4" />
-                                {req.matchingDocumentCount} doc{req.matchingDocumentCount !== 1 ? 's' : ''}
-                              </div>
-                            ) : (
-                              <div className="flex items-center text-red-600">
-                                <AlertCircle className="mr-1 h-4 w-4" />
-                                No matches
-                              </div>
-                            )}
+                            <button
+                              onClick={() => setSelectedRfp(req)}
+                              className="hover:bg-muted/50 rounded p-1 -m-1 transition-colors"
+                            >
+                              {req.matchingDocumentCount > 0 ? (
+                                <div className="flex items-center text-green-600">
+                                  <CheckCircle className="mr-1 h-4 w-4" />
+                                  <span className="hover:underline">
+                                    {req.matchingDocumentCount} doc{req.matchingDocumentCount !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-red-600">
+                                  <AlertCircle className="mr-1 h-4 w-4" />
+                                  <span className="hover:underline">No matches</span>
+                                </div>
+                              )}
+                            </button>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -993,6 +1010,125 @@ export default function CaseDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Document Summary Dialog */}
+      <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {selectedDocument?.fileName}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDocument?.category && (
+                <Badge className="mr-2">{selectedDocument.category}</Badge>
+              )}
+              {selectedDocument?.subtype && (
+                <Badge variant="outline">{selectedDocument.subtype}</Badge>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <h4 className="font-medium mb-2">AI Summary</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {selectedDocument?.metadata?.summary || "No summary available"}
+              </p>
+            </div>
+            {selectedDocument?.metadata?.parties && selectedDocument.metadata.parties.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Parties Mentioned</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDocument.metadata.parties.map((party, i) => (
+                    <Badge key={i} variant="secondary">{party}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {selectedDocument?.metadata?.amounts && selectedDocument.metadata.amounts.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Amounts Found</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDocument.metadata.amounts.map((amount, i) => (
+                    <Badge key={i} variant="outline">
+                      ${amount.toLocaleString()}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(selectedDocument?.metadata?.startDate || selectedDocument?.metadata?.endDate) && (
+              <div>
+                <h4 className="font-medium mb-2">Date Range</h4>
+                <p className="text-sm text-muted-foreground">
+                  {selectedDocument.metadata.startDate && `From: ${selectedDocument.metadata.startDate}`}
+                  {selectedDocument.metadata.startDate && selectedDocument.metadata.endDate && " — "}
+                  {selectedDocument.metadata.endDate && `To: ${selectedDocument.metadata.endDate}`}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Link href={`/dashboard/cases/${caseId}/documents/${selectedDocument?.id}`}>
+              <Button>
+                <Eye className="mr-2 h-4 w-4" />
+                View Full Document
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* RFP Matching Documents Dialog */}
+      <Dialog open={!!selectedRfp} onOpenChange={() => setSelectedRfp(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedRfp?.type} {selectedRfp?.number} - Matching Documents
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRfp?.text}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedRfp?.matchingDocumentCount === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No matching documents</h3>
+                <p className="text-muted-foreground">
+                  No documents in this case match the category "{selectedRfp?.categoryHint || 'unspecified'}"
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {documents
+                  .filter(doc => selectedRfp?.matchingDocumentIds?.includes(doc.id))
+                  .map(doc => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{doc.fileName}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {doc.metadata?.summary || doc.subtype || doc.category}
+                          </p>
+                        </div>
+                      </div>
+                      <Link href={`/dashboard/cases/${caseId}/documents/${doc.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
