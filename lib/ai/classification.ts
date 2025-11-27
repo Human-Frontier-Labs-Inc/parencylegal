@@ -345,6 +345,36 @@ export async function classifyAndStore(
   // Store classification in database
   await updateDocumentClassification(documentId, finalResult, userId);
 
+  // Phase 5: Chunk and embed document for semantic search
+  // Only if we have extracted text
+  if (extractedText.text && extractedText.text.length > 100) {
+    try {
+      const { chunkDocument, addPageNumbersToChunks, extractPageNumbers } = await import('./chunking');
+      const { storeChunksWithEmbeddings, deleteDocumentChunks } = await import('./embeddings');
+
+      // Delete any existing chunks for this document
+      await deleteDocumentChunks(documentId);
+
+      // Chunk the document
+      let chunks = chunkDocument(extractedText.text);
+
+      // Add page numbers if available
+      const pageMap = extractPageNumbers(extractedText.text);
+      if (pageMap.size > 0) {
+        chunks = addPageNumbersToChunks(chunks, pageMap);
+      }
+
+      // Store chunks with embeddings
+      if (chunks.length > 0) {
+        await storeChunksWithEmbeddings(documentId, document.caseId, userId, chunks);
+        console.log(`[Classification] Created ${chunks.length} chunks with embeddings for document ${documentId}`);
+      }
+    } catch (embeddingError) {
+      // Don't fail the whole classification if embedding fails
+      console.error(`[Classification] Failed to create embeddings for ${documentId}:`, embeddingError);
+    }
+  }
+
   return finalResult;
 }
 

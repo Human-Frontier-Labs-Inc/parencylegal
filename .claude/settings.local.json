@@ -39,7 +39,9 @@
       "Bash(npx drizzle-kit push:*)",
       "Bash(cat:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npx drizzle-kit generate)",
+      "Bash(PGPASSWORD=P3auBNxXLF0foUjK psql:*)"
     ],
     "deny": []
   },
