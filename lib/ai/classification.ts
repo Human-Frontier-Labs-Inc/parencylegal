@@ -8,7 +8,15 @@ import { db } from '@/db/db';
 import { documentsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createClient } from '@supabase/supabase-js';
-import { extractText as unpdfExtractText, getDocumentProxy } from 'unpdf';
+// Dynamic import for unpdf to avoid serverless bundling issues
+let unpdfModule: { extractText: Function; getDocumentProxy: Function } | null = null;
+
+async function getUnpdf() {
+  if (!unpdfModule) {
+    unpdfModule = await import('unpdf');
+  }
+  return unpdfModule;
+}
 import {
   classifyDocument as aiClassify,
   updateDocumentClassification,
@@ -42,6 +50,9 @@ export interface ClassificationPipelineResult extends ClassificationResult {
 export async function extractTextFromPDF(fileBuffer: Buffer): Promise<ExtractedText> {
   try {
     console.log('[Classification] Starting PDF text extraction with unpdf...');
+
+    // Dynamic import to avoid serverless bundling issues
+    const { extractText: unpdfExtractText, getDocumentProxy } = await getUnpdf();
 
     // Convert Buffer to Uint8Array for unpdf
     const uint8Array = new Uint8Array(fileBuffer);
