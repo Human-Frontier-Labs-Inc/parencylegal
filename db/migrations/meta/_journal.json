@@ -15,6 +15,13 @@
       "when": 1764064004995,
       "tag": "0001_open_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764259098512,
+      "tag": "0002_curious_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

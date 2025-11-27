@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { db } from '@/db/db';
 import { aiChatSessionsTable, documentsTable } from '@/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
+import { getClassificationConfig, calculateCostCents } from './model-config';
 
 // Types
 export interface ClassificationResult {
@@ -107,9 +108,8 @@ export const DOCUMENT_CATEGORIES = {
 // OpenAI client singleton
 let openaiClient: OpenAI | null = null;
 
-// Cost per 1000 tokens (approximate for GPT-4o-mini)
-const INPUT_COST_PER_1K = 0.00015;
-const OUTPUT_COST_PER_1K = 0.0006;
+// Note: Cost calculation now uses model-config.ts
+// CACHE_DISCOUNT preserved for future use with cached prompts
 const CACHE_DISCOUNT = 0.9; // 90% discount for cached prompts
 
 /**
@@ -283,10 +283,13 @@ export async function classifyDocument(
 
   const prompt = getClassificationPrompt(documentText, fileName);
 
+  // Get model configuration from environment
+  const modelConfig = getClassificationConfig();
+
   try {
     // Make API call
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini', // Cost-effective model
+      model: modelConfig.model,
       messages: [
         {
           role: 'system',
@@ -297,8 +300,8 @@ export async function classifyDocument(
           content: prompt,
         },
       ],
-      temperature: 0.1, // Low temperature for consistent classifications
-      max_tokens: 500,
+      temperature: modelConfig.temperature,
+      max_tokens: modelConfig.maxTokens,
       response_format: { type: 'json_object' },
     });
 
@@ -313,11 +316,10 @@ export async function classifyDocument(
       throw new Error('Invalid response from AI');
     }
 
-    // Calculate cost in cents (schema stores as integer cents)
+    // Calculate cost in cents using model config
     const inputTokens = response.usage?.prompt_tokens || 0;
     const outputTokens = response.usage?.completion_tokens || 0;
-    const costDollars = (inputTokens / 1000) * INPUT_COST_PER_1K + (outputTokens / 1000) * OUTPUT_COST_PER_1K;
-    const costCents = Math.round(costDollars * 100 * 100) / 100; // Convert to cents, keep 2 decimal precision then round
+    const costCents = calculateCostCents(inputTokens, outputTokens, modelConfig);
 
     // Update session if exists
     if (session) {

@@ -8,6 +8,7 @@ import { documentRequestMappingsTable } from "./schema/document-request-mappings
 import { aiChatSessionsTable } from "./schema/ai-chat-sessions-schema";
 import { syncHistoryTable } from "./schema/sync-history-schema";
 import { dropboxConnectionsTable } from "./schema/dropbox-connections-schema";
+import { documentProcessingQueueTable } from "./schema/document-processing-queue-schema";
 import { env } from "@/lib/env";
 
 // Define the schema properly
@@ -20,6 +21,7 @@ const schema = {
   aiChatSessions: aiChatSessionsTable,
   syncHistory: syncHistoryTable,
   dropboxConnections: dropboxConnectionsTable,
+  documentProcessingQueue: documentProcessingQueueTable,
 };
 
 // Add connection options with improved timeout and retry settings for Vercel environment
