@@ -50,11 +50,31 @@ export async function GET(
       ) as exists
     `);
 
+    // Check documents status for this case
+    const docsStatus = await db.execute(sql`
+      SELECT
+        COUNT(*) as total,
+        COUNT(category) as classified,
+        COUNT(*) - COUNT(category) as unclassified
+      FROM documents
+      WHERE case_id = ${caseId}
+    `);
+
+    // Get document details
+    const docDetails = await db.execute(sql`
+      SELECT id, file_name, category, subtype, storage_path
+      FROM documents
+      WHERE case_id = ${caseId}
+      LIMIT 5
+    `);
+
     // The result from postgres.js is the array directly
     const tableExists = Array.isArray(tableCheck) ? tableCheck[0]?.exists : (tableCheck as any).rows?.[0]?.exists;
     const count = Array.isArray(chunkCount) ? chunkCount[0]?.count : (chunkCount as any).rows?.[0]?.count;
     const samples = Array.isArray(sampleChunk) ? sampleChunk : (sampleChunk as any).rows || [];
     const pgvectorExists = Array.isArray(pgvectorCheck) ? pgvectorCheck[0]?.exists : (pgvectorCheck as any).rows?.[0]?.exists;
+    const docStats = Array.isArray(docsStatus) ? docsStatus[0] : (docsStatus as any).rows?.[0];
+    const docs = Array.isArray(docDetails) ? docDetails : (docDetails as any).rows || [];
 
     return NextResponse.json({
       caseId,
@@ -62,10 +82,13 @@ export async function GET(
       pgvectorExists,
       chunkCount: count,
       sampleChunks: samples,
+      documents: {
+        stats: docStats,
+        samples: docs,
+      },
       debug: {
         tableCheckType: typeof tableCheck,
         tableCheckIsArray: Array.isArray(tableCheck),
-        rawTableCheck: tableCheck,
       }
     });
   } catch (error: any) {
