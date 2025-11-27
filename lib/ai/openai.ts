@@ -221,18 +221,22 @@ export async function addMessageToSession(
 /**
  * Classification prompt template
  */
-function getClassificationPrompt(documentText: string): string {
+function getClassificationPrompt(documentText: string, fileName?: string): string {
   const categories = Object.entries(DOCUMENT_CATEGORIES)
     .map(([cat, subtypes]) => `${cat}: ${subtypes.join(', ')}`)
     .join('\n');
+
+  // If no document text, use filename-based classification
+  const contentSection = documentText.length > 10
+    ? `DOCUMENT TEXT:\n${documentText.substring(0, 4000)} ${documentText.length > 4000 ? '... [truncated]' : ''}`
+    : `FILENAME: ${fileName || 'unknown'}\n\nNote: Document text could not be extracted. Please classify based on the filename.`;
 
   return `You are a legal document classifier for family law cases. Analyze the following document and classify it.
 
 DOCUMENT CATEGORIES AND SUBTYPES:
 ${categories}
 
-DOCUMENT TEXT:
-${documentText.substring(0, 4000)} ${documentText.length > 4000 ? '... [truncated]' : ''}
+${contentSection}
 
 Respond with a JSON object containing:
 {
@@ -249,7 +253,7 @@ Respond with a JSON object containing:
   }
 }
 
-Only respond with valid JSON. Be conservative with confidence scores.`;
+Only respond with valid JSON. Be conservative with confidence scores (use lower scores when classifying from filename only).`;
 }
 
 /**
@@ -259,7 +263,8 @@ export async function classifyDocument(
   documentId: string,
   documentText: string,
   caseId?: string,
-  onChunk?: (chunk: string) => void
+  onChunk?: (chunk: string) => void,
+  fileName?: string
 ): Promise<ClassificationResult> {
   const client = getClient();
 
@@ -269,7 +274,7 @@ export async function classifyDocument(
     session = await createAIChatSession(caseId, documentId);
   }
 
-  const prompt = getClassificationPrompt(documentText);
+  const prompt = getClassificationPrompt(documentText, fileName);
 
   try {
     // Make API call
