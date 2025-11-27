@@ -162,10 +162,9 @@ export function CaseChat({ caseId, caseName }: CaseChatProps) {
                 setSessionId(data.sessionId);
                 const chunks = data.contextChunks || 0;
                 setContextCount(chunks);
-                // Show embed prompt only if this is the first message and no context was found
-                if (chunks === 0 && messages.length === 0) {
-                  setNeedsEmbedding(true);
-                } else {
+                // Always hide embed prompt when we get context
+                // Only show it if explicitly triggered by embed-documents returning 0 processed
+                if (chunks > 0) {
                   setNeedsEmbedding(false);
                 }
               } else if (data.type === "error") {
