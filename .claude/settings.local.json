@@ -37,7 +37,8 @@
       "Bash(vercel --prod)",
       "Bash(vercel logs:*)",
       "Bash(npx drizzle-kit push:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   },

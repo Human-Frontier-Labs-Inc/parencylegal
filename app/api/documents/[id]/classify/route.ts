@@ -47,6 +47,7 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("Classification error:", error);
+    console.error("Error stack:", error.stack);
 
     if (error.message === "Document not found") {
       return NextResponse.json(
@@ -55,8 +56,12 @@ export async function POST(
       );
     }
 
+    // Return more detailed error for debugging
     return NextResponse.json(
-      { error: error.message || "Classification failed" },
+      {
+        error: error.message || "Classification failed",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
