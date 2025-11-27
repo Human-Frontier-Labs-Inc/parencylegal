@@ -1,524 +1,826 @@
-# Parency Lawyer App - TDD Phase Implementation Plan
-**Target: Production on Vercel in 8-10 Weeks**
+# Parency Legal - TDD Phase Implementation Plan
+**Target: Production on Vercel in 12-14 Weeks**
 
 ## Overview
 This plan uses Test-Driven Development (TDD) methodology where tests are written BEFORE implementation. Each phase has clear deliverables, acceptance criteria, and a working deployment to Vercel staging/production.
 
 ---
 
-## 🏗️ PHASE 1: Database Foundation & Auth (Week 1-2)
+## 📋 Phase Status Overview
+
+| Phase | Name | Status | Description |
+|-------|------|--------|-------------|
+| 1 | Database Foundation & Auth | ✅ COMPLETE | Supabase, Clerk, schema |
+| 2 | Dropbox Integration | ✅ COMPLETE | OAuth, sync, storage |
+| 3 | AI Document Classification | ✅ COMPLETE | Manual classification, PDF extraction |
+| 4 | Auto-Classification & Model Config | 🔄 NEXT | Background processing, env-driven models |
+| 5 | Document Intelligence (RAG) | ⏳ PLANNED | pgvector, embeddings, semantic search |
+| 6 | Chat Interface | ⏳ PLANNED | Legal assistant, case page redesign |
+| 7 | Case Insights & Gap Detection | ⏳ PLANNED | Missing docs, recommendations |
+| 8 | Discovery Request Tracking | ⏳ PLANNED | RFPs, document mapping |
+| 9 | Timeline, Search & Export | ⏳ PLANNED | Chronological view, PDF export |
+| 10 | Stripe Payments & Trials | ⏳ PLANNED | Subscriptions, usage limits |
+| 11 | Advanced Legal Assistant | ⏳ PLANNED | Drafting, legal research |
+| 12 | Production Launch | ⏳ PLANNED | Security, performance, monitoring |
+
+---
+
+## 🏗️ PHASE 1: Database Foundation & Auth ✅ COMPLETE
 **Goal:** Production-ready database schema with authentication
 
-### Test-Driven Approach
-```
-RED → GREEN → REFACTOR
-Write failing tests → Make tests pass → Optimize code
-```
+### Completed Deliverables
+- ✅ Supabase PostgreSQL database configured
+- ✅ Clerk authentication integrated
+- ✅ Database schema with all core tables
+- ✅ Row Level Security (RLS) policies
+- ✅ Protected routes middleware
+- ✅ Deployed to Vercel
 
-### 1.1 Database Schema (TDD)
-**Tests First:**
-- [ ] Schema validation tests (correct tables, columns, constraints)
-- [ ] Row Level Security (RLS) policy tests
-- [ ] Foreign key constraint tests
-- [ ] Index performance tests
-- [ ] Data integrity tests
-
-**Implementation:**
-- [ ] `cases` table with Dropbox folder mapping
-- [ ] `documents` table with classification fields
-- [ ] `discovery_requests` table (RFPs/Interrogatories)
-- [ ] `document_request_mappings` table
-- [ ] `ai_chat_sessions` table for persistent conversations
-- [ ] `ai_classifications` table for document analysis results
-- [ ] Supabase RLS policies for multi-tenancy
-- [ ] Database migration scripts
-
-**Tests Implementation:**
-```typescript
-// tests/db/schema.test.ts
-describe('Database Schema', () => {
-  test('should create cases table with required fields', async () => {
-    // Test table structure
-  });
-
-  test('should enforce RLS policies per user', async () => {
-    // Test security
-  });
-
-  test('should cascade delete related documents when case deleted', async () => {
-    // Test relationships
-  });
-});
-```
-
-### 1.2 Authentication System (TDD)
-**Tests First:**
-- [ ] User registration flow tests
-- [ ] Login/logout tests
-- [ ] Session persistence tests
-- [ ] Protected route tests
-- [ ] Role-based access control tests
-
-**Implementation:**
-- [ ] Supabase Auth integration
-- [ ] Email/password authentication
-- [ ] Protected API routes middleware
-- [ ] User profile management
-- [ ] Auth context/hooks for client-side
-
-**Tests Implementation:**
-```typescript
-// tests/auth/auth.test.ts
-describe('Authentication', () => {
-  test('should register new attorney account', async () => {
-    const result = await registerUser(mockAttorney);
-    expect(result.user).toBeDefined();
-  });
-
-  test('should protect dashboard routes', async () => {
-    const response = await fetch('/dashboard');
-    expect(response.status).toBe(401);
-  });
-});
-```
-
-### 📦 PHASE 1 DELIVERABLES
-**Vercel Deployment:**
-- ✅ Database fully migrated on Supabase production
-- ✅ Auth system working (register/login)
-- ✅ Protected routes enforced
-- ✅ All database tests passing (100% coverage)
-- ✅ All auth tests passing (100% coverage)
-- ✅ Deployed to Vercel staging environment
-
-**Acceptance Criteria:**
-- [ ] Attorney can register an account
-- [ ] Attorney can log in and access protected dashboard
-- [ ] Database schema matches PRD requirements
-- [ ] RLS policies prevent cross-user data access
-- [ ] CI/CD pipeline runs all tests on push
-
-**Code Coverage Target:** 100% for database utilities and auth flows
+### Schema Tables
+- `cases` - Case management with Dropbox folder mapping
+- `documents` - Document storage with classification fields
+- `ai_chat_sessions` - AI conversation tracking
+- `discovery_requests` - RFPs/Interrogatories (future)
+- `document_request_mappings` - Discovery mapping (future)
 
 ---
 
-## 🔗 PHASE 2: Dropbox Integration (Week 2-3)
-**Goal:** Attorneys can connect Dropbox and map case folders
+## 🔗 PHASE 2: Dropbox Integration ✅ COMPLETE
+**Goal:** Attorneys can connect Dropbox and sync case folders
 
-### 2.1 Dropbox OAuth (TDD)
+### Completed Deliverables
+- ✅ Dropbox OAuth flow (PKCE)
+- ✅ Token storage and refresh mechanism
+- ✅ Folder browser UI component
+- ✅ Case creation with Dropbox folder mapping
+- ✅ Manual "Sync from Dropbox" functionality
+- ✅ File download to Supabase Storage
+- ✅ Duplicate detection via content hash
+- ✅ Serverless-compatible API (fetch instead of SDK)
+
+---
+
+## 🤖 PHASE 3: AI Document Classification ✅ COMPLETE
+**Goal:** Documents can be classified with AI assistance
+
+### Completed Deliverables
+- ✅ OpenAI integration (GPT-4o-mini)
+- ✅ PDF text extraction with unpdf (serverless-compatible)
+- ✅ Document classification with category/subtype
+- ✅ Confidence scoring
+- ✅ Metadata extraction (dates, parties, amounts)
+- ✅ Manual "Re-classify" button
+- ✅ Classification review UI
+- ✅ Filename-based fallback for scanned PDFs
+- ✅ Token usage and cost tracking
+
+### Current Limitations (Addressed in Phase 4)
+- Classification is manual (button click)
+- Model is hardcoded (GPT-4o-mini)
+- No background processing for batch operations
+
+---
+
+## ⚡ PHASE 4: Auto-Classification & Configurable Models 🔄 NEXT
+**Goal:** Automatic classification on sync, environment-driven model selection
+
+### 4.1 Environment-Driven Model Configuration (TDD)
 **Tests First:**
-- [ ] OAuth flow integration tests
-- [ ] Token storage/retrieval tests
-- [ ] Token refresh mechanism tests
-- [ ] OAuth error handling tests
-- [ ] Disconnection flow tests
+- [ ] Model selection from environment variables
+- [ ] Fallback to defaults when env not set
+- [ ] Different models for different use cases
 
 **Implementation:**
-- [ ] Auth.js Dropbox provider configuration
-- [ ] OAuth callback route with PKCE
-- [ ] Encrypted token storage in Supabase
-- [ ] Token refresh background job
-- [ ] Dropbox connection status UI
+- [ ] Add environment variables:
+  ```env
+  OPENAI_MODEL_CLASSIFICATION=gpt-5-nano
+  OPENAI_MODEL_CHAT=gpt-5-mini
+  OPENAI_MODEL_EMBEDDING=text-embedding-3-large
+  ```
+- [ ] Update `lib/ai/openai.ts` to use `process.env`
+- [ ] Model configuration utility with defaults
+- [ ] Cost calculation per model
 
 **Tests Implementation:**
 ```typescript
-// tests/integrations/dropbox-oauth.test.ts
-describe('Dropbox OAuth', () => {
-  test('should complete OAuth flow and store tokens', async () => {
-    const tokens = await completeDropboxOAuth(mockAuthCode);
-    expect(tokens.access_token).toBeDefined();
-    expect(tokens.refresh_token).toBeDefined();
+// tests/ai/model-config.test.ts
+describe('Model Configuration', () => {
+  test('should use env variable for classification model', () => {
+    process.env.OPENAI_MODEL_CLASSIFICATION = 'gpt-5-nano';
+    const model = getClassificationModel();
+    expect(model).toBe('gpt-5-nano');
   });
 
-  test('should refresh expired tokens automatically', async () => {
-    const newToken = await refreshDropboxToken(expiredToken);
-    expect(newToken).toBeDefined();
+  test('should fallback to default when env not set', () => {
+    delete process.env.OPENAI_MODEL_CLASSIFICATION;
+    const model = getClassificationModel();
+    expect(model).toBe('gpt-4o-mini'); // Default
   });
 });
 ```
 
-### 2.2 Case-to-Folder Mapping (TDD)
+### 4.2 Document Processing Queue (TDD)
 **Tests First:**
-- [ ] Folder browsing API tests
-- [ ] Case creation with folder mapping tests
-- [ ] Folder re-mapping tests
-- [ ] Validation tests (folder exists, permissions)
+- [ ] Queue insertion on document creation
+- [ ] Status transitions (pending → processing → complete)
+- [ ] Error handling and retry logic
+- [ ] Concurrent processing limits
 
 **Implementation:**
-- [ ] Dropbox SDK integration
-- [ ] Folder browser UI component (shadcn)
-- [ ] Case creation form with Dropbox picker
-- [ ] API routes for folder operations
-- [ ] Database updates for folder path storage
+- [ ] Create `document_processing_queue` table:
+  ```sql
+  CREATE TABLE document_processing_queue (
+    id UUID PRIMARY KEY,
+    document_id UUID REFERENCES documents(id),
+    status TEXT DEFAULT 'pending', -- pending, processing, completed, failed
+    attempts INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP
+  );
+  ```
+- [ ] Queue service for document processing
+- [ ] Status update functions
+- [ ] Retry logic with exponential backoff
 
 **Tests Implementation:**
 ```typescript
-// tests/api/case-folder-mapping.test.ts
-describe('Case Folder Mapping', () => {
-  test('should list Dropbox folders for attorney', async () => {
-    const folders = await listDropboxFolders(userId);
-    expect(folders.length).toBeGreaterThan(0);
+// tests/queue/document-processing.test.ts
+describe('Document Processing Queue', () => {
+  test('should add document to queue on sync', async () => {
+    const doc = await createDocument(caseId, fileData);
+    const queueItem = await getQueueItem(doc.id);
+    expect(queueItem.status).toBe('pending');
   });
 
-  test('should create case with Dropbox folder mapping', async () => {
-    const caseData = await createCase({
-      name: 'Smith v. Smith',
-      dropbox_folder_path: '/Clients/Smith'
-    });
-    expect(caseData.dropbox_folder_path).toBe('/Clients/Smith');
+  test('should process pending documents', async () => {
+    await processNextInQueue();
+    const queueItem = await getQueueItem(docId);
+    expect(queueItem.status).toBe('completed');
+  });
+
+  test('should retry failed documents up to 3 times', async () => {
+    // Mock classification failure
+    await processNextInQueue();
+    const queueItem = await getQueueItem(docId);
+    expect(queueItem.attempts).toBeLessThanOrEqual(3);
   });
 });
 ```
 
-### 2.3 Manual File Sync (TDD)
+### 4.3 Background Processing with Vercel Cron (TDD)
 **Tests First:**
-- [ ] File listing from Dropbox tests
-- [ ] Duplicate detection tests
-- [ ] File download/storage tests
-- [ ] Sync status tracking tests
-- [ ] Error handling tests (rate limits, network failures)
+- [ ] Cron job triggers processing
+- [ ] Batch processing limits
+- [ ] Timeout handling
+- [ ] Progress tracking
 
 **Implementation:**
-- [ ] "Sync from Dropbox" API endpoint
-- [ ] Background job queue (BullMQ or Inngest)
-- [ ] File download to Supabase Storage
-- [ ] Duplicate detection logic
-- [ ] Sync progress UI with real-time updates
-- [ ] Sync history/logs table
+- [ ] Create `/api/cron/process-documents` endpoint
+- [ ] Configure `vercel.json` for cron:
+  ```json
+  {
+    "crons": [{
+      "path": "/api/cron/process-documents",
+      "schedule": "* * * * *"
+    }]
+  }
+  ```
+- [ ] Batch processing (max 5 docs per run)
+- [ ] 55-second timeout safety
+- [ ] Status endpoint for monitoring
 
 **Tests Implementation:**
 ```typescript
-// tests/api/dropbox-sync.test.ts
-describe('Dropbox File Sync', () => {
-  test('should sync new files from Dropbox folder', async () => {
+// tests/cron/process-documents.test.ts
+describe('Document Processing Cron', () => {
+  test('should process up to 5 documents per run', async () => {
+    // Add 10 documents to queue
+    await seedQueue(10);
+
+    const result = await processCronJob();
+    expect(result.processed).toBeLessThanOrEqual(5);
+  });
+
+  test('should respect timeout limits', async () => {
+    const startTime = Date.now();
+    await processCronJob();
+    const duration = Date.now() - startTime;
+    expect(duration).toBeLessThan(55000);
+  });
+});
+```
+
+### 4.4 Sync Flow Integration (TDD)
+**Tests First:**
+- [ ] Sync adds documents to queue
+- [ ] UI shows processing status
+- [ ] Real-time status updates
+
+**Implementation:**
+- [ ] Update sync endpoint to queue documents
+- [ ] Add processing status to documents API
+- [ ] Create status polling endpoint
+- [ ] UI indicators: "Synced 12 files, classifying..."
+- [ ] Progress component with document count
+
+**Tests Implementation:**
+```typescript
+// tests/api/sync-with-queue.test.ts
+describe('Sync with Auto-Classification', () => {
+  test('should queue documents for classification after sync', async () => {
     const result = await syncDropboxFolder(caseId);
-    expect(result.newFiles).toBeGreaterThan(0);
-    expect(result.duplicates).toBe(0);
+
+    const pendingDocs = await getQueuedDocuments(caseId);
+    expect(pendingDocs.length).toBe(result.filesNew);
   });
 
-  test('should skip already imported files', async () => {
-    await syncDropboxFolder(caseId); // First sync
-    const result = await syncDropboxFolder(caseId); // Second sync
-    expect(result.newFiles).toBe(0);
-  });
-
-  test('should handle Dropbox API rate limits gracefully', async () => {
-    // Mock rate limit error
-    const result = await syncDropboxFolder(caseId);
-    expect(result.error).toContain('rate limit');
-  });
-});
-```
-
-### 📦 PHASE 2 DELIVERABLES
-**Vercel Deployment:**
-- ✅ Dropbox OAuth fully functional
-- ✅ Attorneys can browse and select Dropbox folders
-- ✅ Manual "Sync from Dropbox" working end-to-end
-- ✅ Files stored in Supabase Storage
-- ✅ All integration tests passing
-- ✅ Deployed to Vercel staging with working Dropbox connection
-
-**Acceptance Criteria:**
-- [ ] Attorney can connect Dropbox account
-- [ ] Attorney can create case and map to Dropbox folder
-- [ ] Attorney can click "Sync from Dropbox" and see files import
-- [ ] Duplicate files are skipped
-- [ ] Sync progress shows in real-time
-- [ ] Disconnecting Dropbox works properly
-
-**Code Coverage Target:** 95%+ for Dropbox integration logic
-
----
-
-## 🤖 PHASE 3: AI Document Classification (Week 3-5)
-**Goal:** Documents auto-classify with attorney review workflow
-
-### 3.1 OpenAI Integration (TDD)
-**Tests First:**
-- [ ] API connection tests
-- [ ] Chat session creation tests
-- [ ] Response streaming tests
-- [ ] Error handling tests (rate limits, timeouts)
-- [ ] Cost tracking tests
-
-**Implementation:**
-- [ ] OpenAI SDK setup with GPT-5-nano
-- [ ] Chat Completions API with conversation history management
-- [ ] Chat session management in Supabase
-- [ ] Streaming response handler
-- [ ] Token usage tracking with 90% cache discount
-- [ ] Environment variable management
-
-**Tests Implementation:**
-```typescript
-// tests/ai/openai-integration.test.ts
-describe('OpenAI Integration', () => {
-  test('should create persistent chat session', async () => {
-    const session = await createAIChatSession(caseId);
-    expect(session.response_id).toBeDefined();
-  });
-
-  test('should stream classification responses', async () => {
-    const chunks = [];
-    await classifyDocument(documentId, (chunk) => {
-      chunks.push(chunk);
+  test('should return processing status in API response', async () => {
+    const caseData = await getCase(caseId);
+    expect(caseData.processingStatus).toEqual({
+      total: 12,
+      pending: 5,
+      processing: 1,
+      completed: 6
     });
-    expect(chunks.length).toBeGreaterThan(0);
-  });
-
-  test('should track token usage per classification', async () => {
-    const result = await classifyDocument(documentId);
-    expect(result.tokens_used).toBeGreaterThan(0);
-  });
-});
-```
-
-### 3.2 Document Classification Engine (TDD)
-**Tests First:**
-- [ ] PDF text extraction tests
-- [ ] Category classification tests
-- [ ] Confidence score validation tests
-- [ ] Metadata extraction tests
-- [ ] Sub-type detection tests
-
-**Implementation:**
-- [ ] PDF.js integration for text extraction
-- [ ] Classification prompt engineering
-- [ ] Category taxonomy (Financial, Medical, Legal, etc.)
-- [ ] Confidence scoring logic
-- [ ] Metadata extraction (dates, parties, amounts)
-- [ ] Fallback to OCR for scanned PDFs (Tesseract.js)
-
-**Tests Implementation:**
-```typescript
-// tests/ai/document-classification.test.ts
-describe('Document Classification', () => {
-  test('should classify bank statement as Financial', async () => {
-    const mockBankStatement = readFileSync('fixtures/bank-statement.pdf');
-    const result = await classifyDocument(mockBankStatement);
-
-    expect(result.category).toBe('Financial');
-    expect(result.subtype).toBe('Bank Statement');
-    expect(result.confidence).toBeGreaterThan(0.8);
-  });
-
-  test('should extract date range from financial document', async () => {
-    const result = await classifyDocument(mockDocument);
-    expect(result.metadata.startDate).toBeDefined();
-    expect(result.metadata.endDate).toBeDefined();
-  });
-
-  test('should flag low-confidence classifications for review', async () => {
-    const result = await classifyDocument(ambiguousDocument);
-    expect(result.needsReview).toBe(true);
-    expect(result.confidence).toBeLessThan(0.8);
-  });
-});
-```
-
-### 3.3 Attorney Review Workflow (TDD)
-**Tests First:**
-- [ ] Classification override tests
-- [ ] Bulk acceptance tests
-- [ ] Re-classification tests
-- [ ] Audit trail tests
-
-**Implementation:**
-- [ ] Classification review UI (shadcn data table)
-- [ ] Accept/reject/override actions
-- [ ] Bulk operations (accept all high-confidence)
-- [ ] Re-classification triggers
-- [ ] Audit logging for classification changes
-- [ ] Filter by confidence level
-
-**Tests Implementation:**
-```typescript
-// tests/workflows/classification-review.test.ts
-describe('Classification Review Workflow', () => {
-  test('should allow attorney to override AI classification', async () => {
-    const updated = await overrideClassification(docId, {
-      category: 'Medical',
-      subtype: 'Medical Records'
-    });
-    expect(updated.category).toBe('Medical');
-    expect(updated.overriddenBy).toBe(attorneyId);
-  });
-
-  test('should bulk accept high-confidence classifications', async () => {
-    const result = await bulkAcceptClassifications(caseId, 0.9);
-    expect(result.accepted).toBeGreaterThan(0);
-  });
-});
-```
-
-### 📦 PHASE 3 DELIVERABLES
-**Vercel Deployment:**
-- ✅ OpenAI integration live with GPT-5-nano
-- ✅ Documents auto-classify after Dropbox sync
-- ✅ Attorney review interface working
-- ✅ Persistent chat sessions maintain context
-- ✅ 90% cache discount applied to repeated prompts
-- ✅ All AI tests passing (mocked and integration)
-- ✅ Deployed to Vercel staging with full AI pipeline
-
-**Acceptance Criteria:**
-- [ ] Synced documents automatically classify within 30 seconds
-- [ ] Classifications include category, subtype, confidence, metadata
-- [ ] Attorney can review and override classifications
-- [ ] Low-confidence docs (<80%) flagged for review
-- [ ] Bulk operations work for high-confidence docs
-- [ ] Token usage tracked and displayed
-- [ ] Cost per document <$0.002 (with caching)
-
-**Code Coverage Target:** 90%+ for classification logic
-
----
-
-## 🎨 PHASE 4: Case Management UI (Week 4-6)
-**Goal:** Professional attorney dashboard with case navigation
-
-### 4.1 Dashboard Components (TDD)
-**Tests First:**
-- [ ] Component rendering tests
-- [ ] Data fetching tests
-- [ ] Loading state tests
-- [ ] Error state tests
-- [ ] Interaction tests
-
-**Implementation:**
-- [ ] Case dashboard (shadcn data table)
-- [ ] Case statistics cards
-- [ ] Quick actions menu
-- [ ] Search and filter components
-- [ ] Case status management
-- [ ] Alert indicators (missing docs, new docs)
-
-**Tests Implementation:**
-```typescript
-// tests/components/dashboard.test.tsx
-describe('Case Dashboard', () => {
-  test('should render attorney cases list', async () => {
-    render(<CaseDashboard />);
-    expect(await screen.findByText('Smith v. Smith')).toBeInTheDocument();
-  });
-
-  test('should show alert for missing documents', async () => {
-    render(<CaseDashboard />);
-    expect(await screen.findByText('3 missing documents')).toBeInTheDocument();
-  });
-
-  test('should filter cases by status', async () => {
-    render(<CaseDashboard />);
-    await userEvent.click(screen.getByText('Active Cases'));
-    expect(screen.queryByText('Closed Case')).not.toBeInTheDocument();
-  });
-});
-```
-
-### 4.2 Case Detail Views (TDD)
-**Tests First:**
-- [ ] Case header tests
-- [ ] Document list tests
-- [ ] Sync status tests
-- [ ] Navigation tests
-
-**Implementation:**
-- [ ] Case detail page layout
-- [ ] Dropbox sync status widget
-- [ ] Document library (categorized view)
-- [ ] Case settings/configuration
-- [ ] Client invitation system
-- [ ] Case notes (optional)
-
-**Tests Implementation:**
-```typescript
-// tests/pages/case-detail.test.tsx
-describe('Case Detail Page', () => {
-  test('should display case header with Dropbox folder', async () => {
-    render(<CaseDetailPage caseId="123" />);
-    expect(await screen.findByText('/Clients/Smith')).toBeInTheDocument();
-  });
-
-  test('should show sync from Dropbox button', async () => {
-    render(<CaseDetailPage caseId="123" />);
-    expect(screen.getByRole('button', { name: /sync/i })).toBeInTheDocument();
-  });
-});
-```
-
-### 4.3 Document Viewer (TDD)
-**Tests First:**
-- [ ] PDF rendering tests
-- [ ] Classification display tests
-- [ ] Metadata display tests
-- [ ] Navigation tests
-
-**Implementation:**
-- [ ] PDF viewer component (react-pdf)
-- [ ] Classification tags display
-- [ ] Metadata sidebar
-- [ ] Previous/next navigation
-- [ ] Quick classification override
-
-**Tests Implementation:**
-```typescript
-// tests/components/document-viewer.test.tsx
-describe('Document Viewer', () => {
-  test('should render PDF with classification tags', async () => {
-    render(<DocumentViewer documentId="456" />);
-    expect(await screen.findByText('Financial')).toBeInTheDocument();
-    expect(screen.getByText('Bank Statement')).toBeInTheDocument();
   });
 });
 ```
 
 ### 📦 PHASE 4 DELIVERABLES
 **Vercel Deployment:**
-- ✅ Full case management dashboard
-- ✅ Case detail pages with document library
-- ✅ Document viewer with classification
-- ✅ All component tests passing
-- ✅ Responsive design (desktop-first)
-- ✅ Deployed to Vercel staging with polished UI
+- ⬜ Environment-driven model selection
+- ⬜ Document processing queue functional
+- ⬜ Vercel Cron job running every minute
+- ⬜ Auto-classification on sync
+- ⬜ Real-time processing status in UI
+- ⬜ All tests passing
 
 **Acceptance Criteria:**
-- [ ] Attorney can view all cases in dashboard
-- [ ] Attorney can create new case and map Dropbox folder
-- [ ] Attorney can view case details and documents
-- [ ] Attorney can sync from Dropbox via button
-- [ ] Documents display with classifications and confidence
-- [ ] UI matches professional legal software standards
+- [ ] Models configurable via environment variables
+- [ ] Documents auto-classify after Dropbox sync
+- [ ] Processing happens in background (no timeout)
+- [ ] UI shows "Classifying X/Y documents..."
+- [ ] Failed classifications retry automatically
+- [ ] Classification completes within 2 minutes for 10 docs
 
-**Code Coverage Target:** 85%+ for UI components
+**Code Coverage Target:** 90%+ for queue and processing logic
 
 ---
 
-## 📋 PHASE 5: Discovery Request Tracking (Week 6-7)
+## 🧠 PHASE 5: Document Intelligence (RAG Foundation)
+**Goal:** Semantic search and document understanding via embeddings
+
+### 5.1 pgvector Setup (TDD)
+**Tests First:**
+- [ ] Vector extension enabled
+- [ ] Vector column operations
+- [ ] Similarity search queries
+- [ ] Index performance
+
+**Implementation:**
+- [ ] Enable pgvector extension in Supabase
+- [ ] Create `document_chunks` table:
+  ```sql
+  CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY,
+    document_id UUID REFERENCES documents(id),
+    case_id UUID REFERENCES cases(id),
+    chunk_index INTEGER,
+    content TEXT,
+    embedding vector(3072), -- text-embedding-3-large dimensions
+    metadata JSONB, -- page number, section, etc.
+    created_at TIMESTAMP
+  );
+
+  CREATE INDEX ON document_chunks
+  USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+  ```
+- [ ] Vector similarity search function
+- [ ] Embedding storage utilities
+
+**Tests Implementation:**
+```typescript
+// tests/db/pgvector.test.ts
+describe('pgvector Setup', () => {
+  test('should store embeddings in vector column', async () => {
+    const embedding = new Array(3072).fill(0.1);
+    const chunk = await createChunk(docId, 'test content', embedding);
+    expect(chunk.embedding.length).toBe(3072);
+  });
+
+  test('should find similar chunks by vector similarity', async () => {
+    const queryEmbedding = await generateEmbedding('bank statement');
+    const similar = await findSimilarChunks(caseId, queryEmbedding, 5);
+    expect(similar.length).toBeLessThanOrEqual(5);
+  });
+});
+```
+
+### 5.2 Document Chunking Pipeline (TDD)
+**Tests First:**
+- [ ] Text splitting by paragraphs
+- [ ] Chunk size limits (~500 tokens)
+- [ ] Metadata preservation
+- [ ] Overlap handling
+
+**Implementation:**
+- [ ] Chunking service with configurable size
+- [ ] Smart splitting (respect sentence boundaries)
+- [ ] Metadata extraction (page numbers, headers)
+- [ ] Add chunking to processing queue:
+  - classify → chunk → embed
+- [ ] Chunk storage in database
+
+**Tests Implementation:**
+```typescript
+// tests/ai/chunking.test.ts
+describe('Document Chunking', () => {
+  test('should split document into ~500 token chunks', async () => {
+    const text = 'Long document text...'.repeat(1000);
+    const chunks = await chunkDocument(text);
+
+    chunks.forEach(chunk => {
+      expect(countTokens(chunk.content)).toBeLessThanOrEqual(600);
+    });
+  });
+
+  test('should preserve paragraph boundaries', async () => {
+    const text = 'Paragraph 1.\n\nParagraph 2.';
+    const chunks = await chunkDocument(text);
+
+    // Should not split mid-paragraph if possible
+    expect(chunks[0].content).toContain('Paragraph 1.');
+  });
+});
+```
+
+### 5.3 Embedding Generation (TDD)
+**Tests First:**
+- [ ] OpenAI embedding API integration
+- [ ] Batch embedding for efficiency
+- [ ] Error handling and retries
+- [ ] Cost tracking
+
+**Implementation:**
+- [ ] OpenAI embeddings service (`text-embedding-3-large`)
+- [ ] Batch processing (max 100 chunks per request)
+- [ ] Embedding queue integration
+- [ ] Cost tracking per embedding
+- [ ] Environment variable for model selection
+
+**Tests Implementation:**
+```typescript
+// tests/ai/embeddings.test.ts
+describe('Embedding Generation', () => {
+  test('should generate embeddings for chunk', async () => {
+    const embedding = await generateEmbedding('test content');
+    expect(embedding.length).toBe(3072);
+  });
+
+  test('should batch embed multiple chunks', async () => {
+    const chunks = ['chunk 1', 'chunk 2', 'chunk 3'];
+    const embeddings = await batchGenerateEmbeddings(chunks);
+    expect(embeddings.length).toBe(3);
+  });
+
+  test('should track embedding costs', async () => {
+    const result = await generateEmbedding('test');
+    expect(result.tokensUsed).toBeGreaterThan(0);
+  });
+});
+```
+
+### 5.4 Semantic Search API (TDD)
+**Tests First:**
+- [ ] Query embedding generation
+- [ ] Vector similarity search
+- [ ] Result ranking
+- [ ] Filtering by case/document
+
+**Implementation:**
+- [ ] `/api/cases/[id]/search` endpoint
+- [ ] Query → embed → search → rank
+- [ ] Return chunks with document references
+- [ ] Filter options (category, date range)
+- [ ] Relevance scoring
+
+**Tests Implementation:**
+```typescript
+// tests/api/semantic-search.test.ts
+describe('Semantic Search', () => {
+  test('should return relevant chunks for query', async () => {
+    const results = await searchCase(caseId, 'monthly income');
+
+    expect(results.chunks.length).toBeGreaterThan(0);
+    expect(results.chunks[0].similarity).toBeGreaterThan(0.7);
+  });
+
+  test('should include document references in results', async () => {
+    const results = await searchCase(caseId, 'bank statement');
+
+    results.chunks.forEach(chunk => {
+      expect(chunk.documentId).toBeDefined();
+      expect(chunk.documentName).toBeDefined();
+    });
+  });
+});
+```
+
+### 📦 PHASE 5 DELIVERABLES
+**Vercel Deployment:**
+- ⬜ pgvector enabled in Supabase
+- ⬜ Document chunking pipeline
+- ⬜ Embedding generation integrated
+- ⬜ Semantic search API functional
+- ⬜ All RAG tests passing
+
+**Acceptance Criteria:**
+- [ ] Documents chunked on classification complete
+- [ ] Embeddings generated for all chunks
+- [ ] Semantic search returns relevant results
+- [ ] Search response time <2 seconds
+- [ ] Embedding cost tracked per document
+
+**Code Coverage Target:** 90%+ for RAG logic
+
+---
+
+## 💬 PHASE 6: Chat Interface
+**Goal:** Case-specific AI legal assistant with document context
+
+### 6.1 Chat Database Schema (TDD)
+**Tests First:**
+- [ ] Chat creation tests
+- [ ] Message storage tests
+- [ ] Chat-case relationship tests
+- [ ] Message ordering tests
+
+**Implementation:**
+- [ ] Create `chats` table:
+  ```sql
+  CREATE TABLE chats (
+    id UUID PRIMARY KEY,
+    case_id UUID REFERENCES cases(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    title TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  );
+  ```
+- [ ] Create `chat_messages` table:
+  ```sql
+  CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY,
+    chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+    role TEXT NOT NULL, -- 'user' | 'assistant' | 'system'
+    content TEXT NOT NULL,
+    sources JSONB, -- [{documentId, chunkId, excerpt}]
+    tokens_used INTEGER,
+    model TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  );
+  ```
+- [ ] RLS policies for chat access
+- [ ] Indexes for performance
+
+**Tests Implementation:**
+```typescript
+// tests/db/chat-schema.test.ts
+describe('Chat Schema', () => {
+  test('should create chat for case', async () => {
+    const chat = await createChat(caseId, userId, 'Financial Analysis');
+    expect(chat.id).toBeDefined();
+    expect(chat.caseId).toBe(caseId);
+  });
+
+  test('should store message with sources', async () => {
+    const message = await addMessage(chatId, 'assistant', 'Based on...', {
+      sources: [{ documentId: 'doc1', excerpt: 'excerpt...' }]
+    });
+    expect(message.sources.length).toBe(1);
+  });
+});
+```
+
+### 6.2 Chat API (TDD)
+**Tests First:**
+- [ ] Create chat endpoint
+- [ ] List chats endpoint
+- [ ] Send message endpoint
+- [ ] RAG integration tests
+- [ ] Web search integration tests
+
+**Implementation:**
+- [ ] `POST /api/cases/[id]/chats` - create new chat
+- [ ] `GET /api/cases/[id]/chats` - list chats for case
+- [ ] `GET /api/chats/[chatId]` - get chat with messages
+- [ ] `POST /api/chats/[chatId]/messages` - send message
+- [ ] RAG pipeline: query → search → augment → generate
+- [ ] Web search toggle for legal research
+- [ ] Streaming responses
+
+**Tests Implementation:**
+```typescript
+// tests/api/chat.test.ts
+describe('Chat API', () => {
+  test('should create new chat for case', async () => {
+    const response = await POST('/api/cases/123/chats', {
+      title: 'Document Analysis'
+    });
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBeDefined();
+  });
+
+  test('should send message and receive AI response', async () => {
+    const response = await POST('/api/chats/456/messages', {
+      content: 'What income is shown in the bank statements?'
+    });
+
+    expect(response.body.role).toBe('assistant');
+    expect(response.body.content).toBeDefined();
+    expect(response.body.sources).toBeDefined();
+  });
+
+  test('should include document citations in response', async () => {
+    const response = await POST('/api/chats/456/messages', {
+      content: 'Summarize the custody agreement'
+    });
+
+    expect(response.body.sources.length).toBeGreaterThan(0);
+    expect(response.body.sources[0].documentName).toBeDefined();
+  });
+});
+```
+
+### 6.3 Case Page Redesign (TDD)
+**Goal:** Dashboard-style case page with AI assistant as primary feature
+
+**Layout Design:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Case: Smith v. Smith                              [Settings] [Sync]│
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────────────┐  ┌─────────────────────────────────┐  │
+│  │ ⚡ Legal Assistant      │  │ 📊 Case Insights                │  │
+│  │    GPT-5-mini • 8/10    │  │                                 │  │
+│  │                         │  │  Documents: 12 classified       │  │
+│  │  [Chat messages...]     │  │  ⚠️ 3 need review               │  │
+│  │                         │  │                                 │  │
+│  │  ┌──────────────────┐   │  │  Categories breakdown...        │  │
+│  │  │ Ask anything...  │   │  │                                 │  │
+│  │  │ 🔍 Search  📎    │   │  │  Missing: W-2 2023, Tax 2022   │  │
+│  │  └──────────────────┘   │  └─────────────────────────────────┘  │
+│  └─────────────────────────┘                                        │
+│                                                                     │
+│  ┌─────────────────────────┐  ┌─────────────────────────────────┐  │
+│  │ 📁 Recent Documents     │  │ ✅ Tasks                        │  │
+│  │  [Document list...]     │  │  [Task checklist...]            │  │
+│  └─────────────────────────┘  └─────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Tests First:**
+- [ ] Case page layout rendering
+- [ ] Chat widget integration
+- [ ] Insights panel data
+- [ ] Documents panel data
+- [ ] Responsive design
+
+**Implementation:**
+- [ ] New case page layout with CSS Grid
+- [ ] Legal Assistant panel component
+- [ ] Case Insights panel component
+- [ ] Recent Documents panel component
+- [ ] Tasks panel component (placeholder)
+- [ ] Panel state management
+
+**Tests Implementation:**
+```typescript
+// tests/pages/case-dashboard.test.tsx
+describe('Case Dashboard', () => {
+  test('should render all panels', async () => {
+    render(<CaseDashboard caseId="123" />);
+
+    expect(screen.getByText('Legal Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Case Insights')).toBeInTheDocument();
+    expect(screen.getByText('Recent Documents')).toBeInTheDocument();
+    expect(screen.getByText('Tasks')).toBeInTheDocument();
+  });
+
+  test('should display chat history in assistant panel', async () => {
+    render(<CaseDashboard caseId="123" />);
+
+    const chatMessages = await screen.findAllByTestId('chat-message');
+    expect(chatMessages.length).toBeGreaterThan(0);
+  });
+});
+```
+
+### 6.4 Chat UI Components (TDD)
+**Tests First:**
+- [ ] Message display tests
+- [ ] Input handling tests
+- [ ] Streaming response tests
+- [ ] Citation display tests
+- [ ] Web search toggle tests
+
+**Implementation:**
+- [ ] ChatPanel component (main container)
+- [ ] MessageList component (scrollable history)
+- [ ] MessageBubble component (user/assistant)
+- [ ] ChatInput component with actions
+- [ ] SourceCitation component
+- [ ] WebSearchToggle component
+- [ ] ChatHistory sidebar (switch conversations)
+- [ ] NewChatButton component
+- [ ] TokenUsage indicator
+
+**Tests Implementation:**
+```typescript
+// tests/components/chat.test.tsx
+describe('Chat Components', () => {
+  test('should display user and assistant messages', () => {
+    render(<MessageList messages={mockMessages} />);
+
+    expect(screen.getByText('User question')).toBeInTheDocument();
+    expect(screen.getByText('AI response')).toBeInTheDocument();
+  });
+
+  test('should show document citations', () => {
+    render(<MessageBubble message={messageWithSources} />);
+
+    expect(screen.getByText('Sources:')).toBeInTheDocument();
+    expect(screen.getByText('bank_statement.pdf')).toBeInTheDocument();
+  });
+
+  test('should toggle web search mode', async () => {
+    render(<ChatInput onSend={mockSend} />);
+
+    await userEvent.click(screen.getByText('Search'));
+    expect(screen.getByTestId('web-search-enabled')).toBeInTheDocument();
+  });
+});
+```
+
+### 📦 PHASE 6 DELIVERABLES
+**Vercel Deployment:**
+- ⬜ Chat database schema migrated
+- ⬜ Chat API endpoints functional
+- ⬜ Case page redesigned with panels
+- ⬜ Chat widget fully functional
+- ⬜ RAG-powered responses with citations
+- ⬜ Web search integration
+- ⬜ All chat tests passing
+
+**Acceptance Criteria:**
+- [ ] Attorney can create multiple chats per case
+- [ ] Chat provides document-aware responses
+- [ ] Citations link to source documents
+- [ ] Web search available for legal research
+- [ ] Chat history persists across sessions
+- [ ] Response time <5 seconds
+- [ ] Token usage displayed
+
+**Code Coverage Target:** 85%+ for chat components and API
+
+---
+
+## 🔍 PHASE 7: Case Insights & Gap Detection
+**Goal:** Proactive AI-driven case analysis and recommendations
+
+### 7.1 Case Insights Panel (TDD)
+**Tests First:**
+- [ ] Classification summary calculation
+- [ ] Needs review count
+- [ ] Category breakdown
+- [ ] Confidence visualization
+
+**Implementation:**
+- [ ] Insights aggregation API
+- [ ] Classification summary component
+- [ ] Category distribution chart
+- [ ] Documents needing review list
+- [ ] Average confidence indicator
+
+**Tests Implementation:**
+```typescript
+// tests/api/case-insights.test.ts
+describe('Case Insights', () => {
+  test('should return classification summary', async () => {
+    const insights = await getCaseInsights(caseId);
+
+    expect(insights.totalDocuments).toBeDefined();
+    expect(insights.classified).toBeDefined();
+    expect(insights.needsReview).toBeDefined();
+  });
+
+  test('should calculate category breakdown', async () => {
+    const insights = await getCaseInsights(caseId);
+
+    expect(insights.byCategory.Financial).toBeDefined();
+    expect(insights.byCategory.Legal).toBeDefined();
+  });
+});
+```
+
+### 7.2 Gap Detection (TDD)
+**Tests First:**
+- [ ] Expected document types for family law
+- [ ] Missing document identification
+- [ ] Date coverage gaps
+- [ ] Recommendation generation
+
+**Implementation:**
+- [ ] Family law document checklist:
+  - Financial: W-2s, Tax Returns, Bank Statements, Pay Stubs
+  - Legal: Custody Agreement, Divorce Decree, Court Orders
+  - Personal: Birth Certificates, Marriage Certificate
+- [ ] Gap detection algorithm
+- [ ] Missing document recommendations
+- [ ] Date range coverage analysis
+- [ ] Gap alerts component
+
+**Tests Implementation:**
+```typescript
+// tests/ai/gap-detection.test.ts
+describe('Gap Detection', () => {
+  test('should identify missing document types', async () => {
+    const gaps = await detectDocumentGaps(caseId);
+
+    expect(gaps.missing).toContain('W-2 for 2023');
+    expect(gaps.missing).toContain('Tax Return 2022');
+  });
+
+  test('should detect date coverage gaps', async () => {
+    const gaps = await detectDocumentGaps(caseId);
+
+    expect(gaps.dateGaps).toContain({
+      type: 'Bank Statement',
+      missingPeriod: 'March 2023 - May 2023'
+    });
+  });
+});
+```
+
+### 7.3 Recommendations Engine (TDD)
+**Tests First:**
+- [ ] Next steps generation
+- [ ] Priority ranking
+- [ ] Context-aware suggestions
+
+**Implementation:**
+- [ ] AI-powered recommendations
+- [ ] "Based on your documents, consider..."
+- [ ] Discovery request suggestions
+- [ ] Next steps for case preparation
+- [ ] Recommendations component
+
+### 📦 PHASE 7 DELIVERABLES
+**Vercel Deployment:**
+- ⬜ Case insights panel functional
+- ⬜ Gap detection working
+- ⬜ Recommendations displayed
+- ⬜ All insights tests passing
+
+**Acceptance Criteria:**
+- [ ] Insights show real-time classification status
+- [ ] Missing documents clearly identified
+- [ ] Date gaps highlighted
+- [ ] Actionable recommendations provided
+
+**Code Coverage Target:** 85%+ for insights logic
+
+---
+
+## 📋 PHASE 8: Discovery Request Tracking
 **Goal:** Track RFPs/Interrogatories and map documents
 
-### 5.1 Discovery Request Management (TDD)
+### 8.1 Discovery Request Management (TDD)
 **Tests First:**
 - [ ] Create discovery request tests
 - [ ] Edit/delete request tests
-- [ ] Request validation tests
 - [ ] Bulk import tests
+- [ ] Category hint tests
 
 **Implementation:**
 - [ ] Discovery request CRUD API
-- [ ] Request creation form (shadcn)
+- [ ] Request creation form
 - [ ] Request type (RFP vs Interrogatory)
 - [ ] Request numbering system
-- [ ] Category hints
 - [ ] Bulk import from text/CSV
+- [ ] Category hints for AI mapping
 
 **Tests Implementation:**
 ```typescript
 // tests/api/discovery-requests.test.ts
 describe('Discovery Request Management', () => {
-  test('should create RFP with full text', async () => {
+  test('should create RFP with category hint', async () => {
     const rfp = await createDiscoveryRequest({
-      caseId: '123',
+      caseId,
       type: 'RFP',
       number: 12,
       text: 'All bank statements from January 2023 to present',
@@ -527,7 +829,7 @@ describe('Discovery Request Management', () => {
     expect(rfp.id).toBeDefined();
   });
 
-  test('should bulk import requests from text', async () => {
+  test('should bulk import from text', async () => {
     const text = `RFP 1: All tax returns...
     RFP 2: All pay stubs...`;
     const result = await bulkImportRequests(caseId, text);
@@ -536,656 +838,222 @@ describe('Discovery Request Management', () => {
 });
 ```
 
-### 5.2 AI Document Mapping (TDD)
+### 8.2 AI Document Mapping (TDD)
 **Tests First:**
-- [ ] Document-to-request matching tests
-- [ ] Confidence scoring tests
-- [ ] Date range matching tests
-- [ ] Keyword matching tests
-- [ ] Reasoning extraction tests
+- [ ] Document-to-request matching
+- [ ] Confidence scoring
+- [ ] Date range matching
+- [ ] Semantic matching via embeddings
 
 **Implementation:**
-- [ ] AI prompt for document-request matching
+- [ ] RAG-based document matching
 - [ ] Date range parser
-- [ ] Keyword extraction
 - [ ] Confidence algorithm
 - [ ] Suggested mappings API
-- [ ] Mapping acceptance/rejection
+- [ ] Manual mapping acceptance/rejection
 
-**Tests Implementation:**
-```typescript
-// tests/ai/document-mapping.test.ts
-describe('AI Document Mapping', () => {
-  test('should map bank statements to financial RFP', async () => {
-    const mappings = await suggestDocumentMappings(rfpId);
-    expect(mappings[0].documentCategory).toBe('Financial');
-    expect(mappings[0].confidence).toBeGreaterThan(0.8);
-  });
-
-  test('should detect date range satisfaction', async () => {
-    const rfp = { text: 'Bank statements Jan 2023 - Dec 2023' };
-    const coverage = await analyzeDateCoverage(rfp, documents);
-    expect(coverage.months.length).toBe(12);
-  });
-});
-```
-
-### 5.3 Coverage Tracking UI (TDD)
-**Tests First:**
-- [ ] Coverage display tests
-- [ ] Progress bar tests
-- [ ] Missing document alert tests
-- [ ] Manual mapping tests
-
+### 8.3 Coverage Tracking UI (TDD)
 **Implementation:**
 - [ ] Discovery request list view
 - [ ] Document mapping interface
 - [ ] Coverage progress indicators
 - [ ] Missing document warnings
-- [ ] Manual add/remove documents
 - [ ] Completion status toggle
 
-**Tests Implementation:**
-```typescript
-// tests/components/discovery-tracker.test.tsx
-describe('Discovery Coverage Tracker', () => {
-  test('should show completion percentage', async () => {
-    render(<DiscoveryTracker caseId="123" />);
-    expect(await screen.findByText('75% Complete')).toBeInTheDocument();
-  });
-
-  test('should highlight incomplete requests', async () => {
-    render(<DiscoveryTracker caseId="123" />);
-    const incompleteRFP = screen.getByText('RFP 5');
-    expect(incompleteRFP).toHaveClass('text-red-600');
-  });
-});
-```
-
-### 📦 PHASE 5 DELIVERABLES
-**Vercel Deployment:**
-- ✅ Discovery request management system
-- ✅ AI-powered document mapping
-- ✅ Coverage tracking dashboard
-- ✅ All mapping tests passing
-- ✅ Deployed to Vercel staging with full discovery workflow
-
-**Acceptance Criteria:**
-- [ ] Attorney can manually create RFPs/Interrogatories
-- [ ] Attorney can bulk import discovery requests
-- [ ] AI suggests document mappings with confidence scores
-- [ ] Attorney can accept/reject/modify mappings
-- [ ] Coverage shows % complete per request
-- [ ] Missing documents flagged clearly
-
-**Code Coverage Target:** 90%+ for discovery logic
+### 📦 PHASE 8 DELIVERABLES
+- ⬜ Discovery request CRUD
+- ⬜ AI-powered document mapping
+- ⬜ Coverage tracking dashboard
+- ⬜ All discovery tests passing
 
 ---
 
-## 📊 PHASE 6: Timeline, Search & Export (Week 7-8)
-**Goal:** Case timeline view and PDF export functionality
+## 📊 PHASE 9: Timeline, Search & Export
+**Goal:** Case timeline view, advanced search, and PDF export
 
-### 6.1 Case Timeline (TDD)
-**Tests First:**
-- [ ] Timeline data aggregation tests
-- [ ] Chronological sorting tests
-- [ ] Filter tests
-- [ ] Date range tests
-
-**Implementation:**
+### 9.1 Case Timeline (TDD)
 - [ ] Timeline data aggregation API
-- [ ] Unified view of all Dropbox documents
 - [ ] Chronological sorting by document date
-- [ ] Filter by category (Financial, Medical, Legal, etc.)
+- [ ] Filter by category
 - [ ] Date range picker
-- [ ] Timeline UI component (shadcn)
+- [ ] Timeline UI component
 
-**Tests Implementation:**
-```typescript
-// tests/api/timeline.test.ts
-describe('Case Timeline', () => {
-  test('should aggregate all case documents chronologically', async () => {
-    const timeline = await getCaseTimeline(caseId);
-    expect(timeline.items.length).toBeGreaterThan(0);
-    expect(timeline.items[0].timestamp).toBeDefined();
-  });
+### 9.2 Advanced Search (TDD)
+- [ ] Full-text search (Postgres)
+- [ ] Semantic search (pgvector)
+- [ ] Combined search with filters
+- [ ] Search results UI with relevance
 
-  test('should filter timeline by category', async () => {
-    const timeline = await getCaseTimeline(caseId, { category: 'Financial' });
-    timeline.items.forEach(item => {
-      expect(item.category).toBe('Financial');
-    });
-  });
-});
-```
-
-### 6.2 Search Functionality (TDD)
-**Tests First:**
-- [ ] Full-text search tests
-- [ ] Filter combination tests
-- [ ] Search performance tests
-- [ ] Relevance ranking tests
-
-**Implementation:**
-- [ ] Search API with Postgres full-text search
-- [ ] Filter by category and date
-- [ ] Search document names and content
-- [ ] Search results UI with relevance ranking
-- [ ] Recent searches
-
-**Tests Implementation:**
-```typescript
-// tests/api/search.test.ts
-describe('Search Functionality', () => {
-  test('should search across all case documents', async () => {
-    const results = await searchCase(caseId, 'bank account');
-    expect(results.documents.length).toBeGreaterThan(0);
-  });
-
-  test('should filter search by date range', async () => {
-    const results = await searchCase(caseId, 'statement', {
-      startDate: '2023-01-01',
-      endDate: '2023-12-31'
-    });
-    // All results within range
-  });
-});
-```
-
-### 6.3 PDF Export System (TDD)
-**Tests First:**
-- [ ] Export by category tests
-- [ ] Export by discovery request tests
-- [ ] PDF generation tests
-- [ ] Table of contents tests
-- [ ] Bates numbering tests (optional)
-
-**Implementation:**
-- [ ] PDF generation library (PDFKit or Puppeteer)
-- [ ] Export by category mode
-- [ ] Export by discovery request mode
+### 9.3 PDF Export System (TDD)
+- [ ] Export by category
+- [ ] Export by discovery request
 - [ ] Cover page with case info
 - [ ] Table of contents
-- [ ] Document separation/dividers
 - [ ] Background job for large exports
 
-**Tests Implementation:**
-```typescript
-// tests/api/pdf-export.test.ts
-describe('PDF Export', () => {
-  test('should export documents by category', async () => {
-    const pdf = await exportPDFByCategory(caseId);
-    expect(pdf.buffer).toBeDefined();
-    expect(pdf.pageCount).toBeGreaterThan(0);
-  });
-
-  test('should export documents by discovery request', async () => {
-    const pdf = await exportPDFByRequest(caseId);
-    expect(pdf.sections.length).toBeGreaterThan(0);
-  });
-
-  test('should include table of contents', async () => {
-    const pdf = await exportPDFByCategory(caseId);
-    expect(pdf.hasTOC).toBe(true);
-  });
-});
-```
-
-### 📦 PHASE 6 DELIVERABLES
-**Vercel Deployment:**
-- ✅ Case timeline functional
-- ✅ Search working across all evidence
-- ✅ PDF export (both modes) functional
-- ✅ All export tests passing
-- ✅ Deployed to Vercel staging with complete feature set
-
-**Acceptance Criteria:**
-- [ ] Attorney can view chronological timeline
-- [ ] Attorney can filter/search timeline
-- [ ] Attorney can search across case evidence
-- [ ] Attorney can export PDF by category
-- [ ] Attorney can export PDF by discovery request
-- [ ] Exports include table of contents
-- [ ] Large exports process in background
-
-**Code Coverage Target:** 85%+ for timeline/search/export
+### 📦 PHASE 9 DELIVERABLES
+- ⬜ Timeline view functional
+- ⬜ Search working (full-text + semantic)
+- ⬜ PDF export both modes
+- ⬜ All export tests passing
 
 ---
 
-## 💳 PHASE 7: Stripe Payments & Trials (Week 8-9)
+## 💳 PHASE 10: Stripe Payments & Trials
 **Goal:** Subscription billing with 14-day free trial
 
-### 7.1 Stripe Integration (TDD)
-**Tests First:**
-- [ ] Checkout session tests
-- [ ] Subscription creation tests
-- [ ] Webhook handling tests
-- [ ] Trial period tests
-- [ ] Cancellation tests
-
-**Implementation:**
-- [ ] Stripe pricing table setup
-- [ ] Checkout flow
-- [ ] Customer portal integration
-- [ ] Subscription status tracking
-- [ ] Usage limit enforcement
+### 10.1 Stripe Integration (TDD)
+- [ ] Checkout session creation
+- [ ] Subscription management
+- [ ] Webhook handling
 - [ ] Trial period logic (14 days)
+- [ ] Customer portal
 
-**Tests Implementation:**
-```typescript
-// tests/payments/stripe.test.ts
-describe('Stripe Integration', () => {
-  test('should create checkout session with trial', async () => {
-    const session = await createCheckoutSession(userId, 'price_solo');
-    expect(session.trial_period_days).toBe(14);
-  });
-
-  test('should handle successful payment webhook', async () => {
-    const event = mockStripeWebhook('checkout.session.completed');
-    await handleStripeWebhook(event);
-
-    const user = await getUser(userId);
-    expect(user.subscription_status).toBe('active');
-  });
-
-  test('should enforce document processing limits', async () => {
-    const user = await getUser(userId);
-    user.documents_processed_this_month = 500; // Solo plan limit
-
-    const result = await classifyDocument(documentId);
-    expect(result.error).toContain('limit reached');
-  });
-});
-```
-
-### 7.2 Usage Tracking (TDD)
-**Tests First:**
-- [ ] Document count tracking tests
-- [ ] AI token usage tests
-- [ ] Monthly reset tests
-- [ ] Overage calculation tests
-
-**Implementation:**
-- [ ] Usage tracking table
+### 10.2 Usage Tracking (TDD)
 - [ ] Document processing counter
 - [ ] AI token usage tracking
-- [ ] Monthly reset cron job
-- [ ] Usage dashboard
+- [ ] Monthly reset cron
+- [ ] Usage limits enforcement
 - [ ] Overage alerts
 
-**Tests Implementation:**
-```typescript
-// tests/billing/usage-tracking.test.ts
-describe('Usage Tracking', () => {
-  test('should track documents processed per month', async () => {
-    await classifyDocument(doc1);
-    await classifyDocument(doc2);
-
-    const usage = await getMonthlyUsage(userId);
-    expect(usage.documents_processed).toBe(2);
-  });
-
-  test('should reset usage on first of month', async () => {
-    await resetMonthlyUsage();
-    const usage = await getMonthlyUsage(userId);
-    expect(usage.documents_processed).toBe(0);
-  });
-});
-```
-
-### 7.3 Pricing Pages (TDD)
-**Tests First:**
-- [ ] Pricing display tests
-- [ ] Plan comparison tests
-- [ ] CTA button tests
-- [ ] Trial messaging tests
-
-**Implementation:**
+### 10.3 Pricing Pages (TDD)
 - [ ] Public pricing page
 - [ ] Plan comparison table
-- [ ] Stripe Elements integration
-- [ ] Trial messaging ("14 days free")
-- [ ] Customer testimonials (optional)
-- [ ] FAQ section
+- [ ] Trial messaging
 
-### 📦 PHASE 7 DELIVERABLES
-**Vercel Deployment:**
-- ✅ Stripe fully integrated
-- ✅ 14-day trial working
-- ✅ Subscription management functional
-- ✅ Usage limits enforced
-- ✅ All payment tests passing
-- ✅ Deployed to Vercel staging with billing live
-
-**Acceptance Criteria:**
-- [ ] Attorney can subscribe to Solo/Small Firm plan
-- [ ] 14-day trial starts on signup
-- [ ] Usage limits enforced (documents/month)
-- [ ] Overage alerts sent
-- [ ] Customer portal works (upgrade/cancel)
-- [ ] Webhooks handle all subscription events
-
-**Code Coverage Target:** 95%+ for payment logic
+### 📦 PHASE 10 DELIVERABLES
+- ⬜ Stripe fully integrated
+- ⬜ 14-day trial working
+- ⬜ Usage limits enforced
+- ⬜ All payment tests passing
 
 ---
 
-## 🚀 PHASE 8: Production Launch (Week 9-10)
+## 🚀 PHASE 11: Advanced Legal Assistant
+**Goal:** Drafting and deep analysis capabilities
+
+### 11.1 Document Drafting (TDD)
+- [ ] Discovery request generation
+- [ ] Timeline narrative generation
+- [ ] Summary generation
+- [ ] Export conversations as case notes
+
+### 11.2 Deep Analysis (TDD)
+- [ ] Multi-document comparison
+- [ ] Discrepancy detection
+- [ ] Asset tracking across documents
+- [ ] Income verification
+
+### 11.3 Legal Research (TDD)
+- [ ] Web search integration
+- [ ] State-specific statute lookups
+- [ ] Citation formatting
+- [ ] Research history
+
+### 📦 PHASE 11 DELIVERABLES
+- ⬜ Drafting capabilities
+- ⬜ Deep analysis features
+- ⬜ Legal research tools
+- ⬜ All advanced tests passing
+
+---
+
+## 🎯 PHASE 12: Production Launch
 **Goal:** Production-ready deployment on Vercel
 
-### 8.1 Performance Optimization (TDD)
-**Tests First:**
-- [ ] Page load performance tests (<3s)
-- [ ] API response time tests (<500ms)
-- [ ] Database query optimization tests
-- [ ] Image optimization tests
-- [ ] Bundle size tests
-
-**Implementation:**
-- [ ] Next.js Image optimization
-- [ ] API route caching
+### 12.1 Performance Optimization
+- [ ] Page load <3s
+- [ ] API response <500ms
 - [ ] Database query optimization
-- [ ] Static page generation where possible
 - [ ] CDN configuration
-- [ ] Lazy loading components
 
-**Tests Implementation:**
-```typescript
-// tests/performance/load-times.test.ts
-describe('Performance Benchmarks', () => {
-  test('should load dashboard in under 3 seconds', async () => {
-    const startTime = Date.now();
-    await page.goto('/dashboard');
-    await page.waitForSelector('[data-testid="case-list"]');
-    const loadTime = Date.now() - startTime;
-
-    expect(loadTime).toBeLessThan(3000);
-  });
-
-  test('should return API response in under 500ms', async () => {
-    const startTime = Date.now();
-    const response = await fetch('/api/cases');
-    const responseTime = Date.now() - startTime;
-
-    expect(responseTime).toBeLessThan(500);
-  });
-});
-```
-
-### 8.2 Security Audit (TDD)
-**Tests First:**
-- [ ] SQL injection tests
-- [ ] XSS vulnerability tests
-- [ ] CSRF protection tests
-- [ ] Rate limiting tests
-- [ ] Authentication bypass tests
-
-**Implementation:**
-- [ ] Security headers (helmet)
-- [ ] Rate limiting (Upstash Redis)
-- [ ] Input validation (Zod schemas)
+### 12.2 Security Audit
+- [ ] SQL injection prevention
+- [ ] XSS protection
 - [ ] CSRF tokens
-- [ ] API key rotation
-- [ ] Dependency security scan
+- [ ] Rate limiting
+- [ ] Dependency audit
 
-**Tests Implementation:**
-```typescript
-// tests/security/vulnerabilities.test.ts
-describe('Security Tests', () => {
-  test('should prevent SQL injection', async () => {
-    const maliciousInput = "1' OR '1'='1";
-    const result = await searchCases(maliciousInput);
-    expect(result).not.toContain('error');
-  });
+### 12.3 Monitoring & Logging
+- [ ] Sentry error tracking
+- [ ] Vercel Analytics
+- [ ] Uptime monitoring
+- [ ] Structured logging
 
-  test('should rate limit API calls', async () => {
-    const requests = Array(100).fill(null).map(() =>
-      fetch('/api/classify')
-    );
-    const responses = await Promise.all(requests);
-
-    const rateLimited = responses.filter(r => r.status === 429);
-    expect(rateLimited.length).toBeGreaterThan(0);
-  });
-});
-```
-
-### 8.3 Monitoring & Logging (TDD)
-**Tests First:**
-- [ ] Error tracking tests
-- [ ] Performance monitoring tests
-- [ ] Uptime monitoring tests
-- [ ] Log aggregation tests
-
-**Implementation:**
-- [ ] Sentry for error tracking
-- [ ] Vercel Analytics integration
-- [ ] Uptime monitoring (Better Uptime)
-- [ ] Structured logging (Pino)
-- [ ] Alert configuration
-- [ ] Status page (optional)
-
-### 8.4 Documentation & Onboarding (TDD)
-**Tests First:**
-- [ ] User guide completeness tests
-- [ ] API documentation tests
-- [ ] Onboarding flow tests
-
-**Implementation:**
+### 12.4 Documentation
 - [ ] User onboarding flow
-- [ ] In-app help tooltips
-- [ ] Knowledge base articles
-- [ ] Video tutorials (optional)
+- [ ] In-app help
 - [ ] API documentation
-- [ ] Developer README
+- [ ] Knowledge base
 
-### 8.5 Production Deployment Checklist
-**Pre-Launch:**
-- [ ] All tests passing (100% critical paths)
-- [ ] Security audit complete
-- [ ] Performance benchmarks met
-- [ ] Stripe live mode enabled
-- [ ] Domain configured (custom domain)
-- [ ] SSL certificates valid
-- [ ] Environment variables set
-- [ ] Database backups configured
-- [ ] Monitoring active
-- [ ] Support email configured
-
-**Deployment:**
-- [ ] Deploy to Vercel production
-- [ ] Run smoke tests on production
-- [ ] Monitor error rates
-- [ ] Test payment flow end-to-end
-- [ ] Test Dropbox OAuth on production
-- [ ] Verify email delivery
-
-**Post-Launch:**
-- [ ] Monitor performance dashboards
-- [ ] Watch error tracking
-- [ ] Test with beta users
-- [ ] Collect feedback
-- [ ] Hotfix deployment process ready
-
-### 📦 PHASE 8 DELIVERABLES
-**Vercel Production:**
-- ✅ App live on custom domain
-- ✅ All features functional in production
-- ✅ Monitoring and alerts configured
-- ✅ Security hardened
-- ✅ Performance optimized
-- ✅ Documentation complete
-- ✅ Support system ready
-
-**Acceptance Criteria:**
-- [ ] Production environment stable (99.9% uptime)
-- [ ] All critical user flows tested in production
-- [ ] Payment processing works in live mode
-- [ ] Error tracking capturing issues
-- [ ] Performance meets benchmarks
-- [ ] Beta users successfully onboarded
-
-**Code Coverage Target:** 90%+ overall codebase coverage
+### 📦 PHASE 12 DELIVERABLES
+- ⬜ Production deployed
+- ⬜ 99.9% uptime
+- ⬜ Security audit passed
+- ⬜ Monitoring active
+- ⬜ Documentation complete
 
 ---
 
-## 📊 Overall Testing Strategy
+## 📈 Success Metrics
 
-### Test Pyramid
-```
-        /\
-       /  \
-      / E2E \          ← 10% (Critical user flows)
-     /______\
-    /        \
-   / Integration \     ← 30% (API endpoints, DB operations)
-  /____________\
- /              \
-/  Unit Tests    \    ← 60% (Business logic, utilities)
-/__________________\
-```
-
-### Testing Tools
-- **Unit Tests:** Vitest
-- **Integration Tests:** Vitest + Supabase test client
-- **E2E Tests:** Playwright
-- **Component Tests:** React Testing Library
-- **API Tests:** Supertest
-- **Performance Tests:** Lighthouse CI
-- **Security Tests:** OWASP ZAP (automated scan)
-
-### CI/CD Pipeline (GitHub Actions)
-```yaml
-on: [push, pull_request]
-
-jobs:
-  test:
-    - Run linting (ESLint, Prettier)
-    - Run type checking (TypeScript)
-    - Run unit tests (Vitest)
-    - Run integration tests
-    - Run E2E tests (Playwright)
-    - Check code coverage (>85% required)
-
-  deploy-staging:
-    if: branch == 'develop'
-    - Deploy to Vercel staging
-    - Run smoke tests
-
-  deploy-production:
-    if: branch == 'main'
-    - Deploy to Vercel production
-    - Run smoke tests
-    - Notify team
-```
+| Phase | Key Metrics |
+|-------|-------------|
+| Phase 4 | Auto-classify within 2 min for 10 docs |
+| Phase 5 | Semantic search <2s response |
+| Phase 6 | Chat response <5s with citations |
+| Phase 7 | Gap detection accuracy >85% |
+| Phase 8 | Document mapping accuracy >80% |
+| Phase 9 | Export <3 min for 500 pages |
+| Phase 10 | 0 failed payment captures |
+| Phase 11 | Draft quality rating >4/5 |
+| Phase 12 | 99.9% uptime, <100ms p95 latency |
 
 ---
 
-## 📈 Success Metrics Per Phase
+## 🛠️ Technology Stack
 
-### Phase 1: Database & Auth
-- ✅ 100% schema tests passing
-- ✅ 0 unauthorized access in tests
-- ✅ <200ms auth response time
+**Core:**
+- Next.js 15 (App Router)
+- TypeScript
+- Supabase (PostgreSQL + pgvector + Storage)
+- Clerk (Authentication)
+- Vercel (Hosting + Cron)
 
-### Phase 2: Dropbox Integration
-- ✅ 95%+ successful OAuth connections
-- ✅ 0 duplicate file imports
-- ✅ <30s sync time for 50 files
+**AI/ML:**
+- OpenAI GPT-5 family (classification, chat)
+- OpenAI text-embedding-3-large (RAG)
+- pgvector (vector storage)
 
-### Phase 3: AI Classification
-- ✅ >85% classification accuracy
-- ✅ <30s per document classification
-- ✅ Token cost <$0.002/document (with GPT-5-nano + caching)
+**UI:**
+- Tailwind CSS
+- shadcn/ui components
+- React Query (data fetching)
 
-### Phase 4: UI/UX
-- ✅ Lighthouse score >90
-- ✅ 0 accessibility violations (WCAG AA)
-- ✅ <3s page load time
-
-### Phase 5: Discovery Tracking
-- ✅ >80% accurate document-request mapping
-- ✅ <2s coverage calculation
-- ✅ 95%+ attorney acceptance rate
-
-### Phase 6: Timeline & Export
-- ✅ <3min export time for 500 pages
-- ✅ <500ms search response
-- ✅ 100% export accuracy
-
-### Phase 7: Payments
-- ✅ 0 failed payment captures
-- ✅ 100% webhook processing
-- ✅ <5s checkout completion
-
-### Phase 8: Production
-- ✅ 99.9% uptime
-- ✅ <100ms p95 API latency
-- ✅ 0 critical security vulnerabilities
+**Integrations:**
+- Dropbox API (OAuth + file sync)
+- Stripe (payments)
 
 ---
 
-## 🎯 Final Deliverable: Production-Ready MVP
+## 📞 Resources
 
-**What "Production-Ready" Means:**
-- ✅ All critical user flows work end-to-end
-- ✅ 90%+ code coverage across codebase
-- ✅ Security audit passed
-- ✅ Performance benchmarks met
-- ✅ Monitoring and alerts active
-- ✅ Stripe live payments working
-- ✅ Dropbox integration stable
-- ✅ AI classification accurate and cost-effective
-- ✅ Documentation complete
-- ✅ Support system ready
-- ✅ Beta users onboarded successfully
+- [OpenAI GPT-5 Docs](https://platform.openai.com/docs/models/gpt-5)
+- [OpenAI Embeddings](https://platform.openai.com/docs/guides/embeddings)
+- [Supabase pgvector](https://supabase.com/docs/guides/ai/vector-columns)
+- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
+- [unpdf (serverless PDF)](https://github.com/unjs/unpdf)
+
+---
 
 **Timeline Summary:**
-- **Weeks 1-2:** Database & Auth ✅
-- **Weeks 2-3:** Dropbox Integration ✅
-- **Weeks 3-5:** AI Classification ✅
-- **Weeks 4-6:** Case Management UI ✅
-- **Weeks 6-7:** Discovery Tracking ✅
-- **Weeks 7-8:** Timeline, Search, Export ✅
-- **Weeks 8-9:** Stripe Payments ✅
-- **Weeks 9-10:** Production Launch ✅
+- **Phase 1-3:** Foundation (Complete) ✅
+- **Phase 4-6:** AI Assistant & RAG (4-5 weeks)
+- **Phase 7-9:** Insights & Discovery (3-4 weeks)
+- **Phase 10-12:** Payments & Launch (3-4 weeks)
 
-**Total: 8-10 Weeks to Production on Vercel**
+**Total: 12-14 Weeks to Production**
 
 ---
 
-## 🚦 Phase Gate Criteria
-
-**Each phase must meet these criteria before proceeding:**
-
-1. ✅ All tests passing (no skipped tests)
-2. ✅ Code coverage meets target
-3. ✅ Code review completed
-4. ✅ Deployed to Vercel staging
-5. ✅ Manual QA passed
-6. ✅ Performance benchmarks met
-7. ✅ No critical bugs
-8. ✅ Documentation updated
-
-**If any criteria fails:** Fix before moving to next phase.
-
----
-
-## 📞 Support & Resources
-
-**Key Resources:**
-- Next.js Documentation: https://nextjs.org/docs
-- Supabase Documentation: https://supabase.com/docs
-- OpenAI API Docs: https://platform.openai.com/docs
-- Dropbox API Docs: https://www.dropbox.com/developers/documentation
-- Stripe Docs: https://stripe.com/docs
-- shadcn/ui: https://ui.shadcn.com
-- Vercel Deployment: https://vercel.com/docs
-
-**Testing Resources:**
-- Vitest: https://vitest.dev
-- Playwright: https://playwright.dev
-- React Testing Library: https://testing-library.com/react
-
----
-
-**Ready to build? Let's start with Phase 1!** 🚀
+**Ready to start Phase 4: Auto-Classification!** 🚀
