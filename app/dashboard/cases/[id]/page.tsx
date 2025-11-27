@@ -39,7 +39,10 @@ import {
   Eye,
   Check,
   X,
+  Sparkles,
+  Brain,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface Case {
   id: string;
@@ -103,12 +106,31 @@ export default function CaseDetailPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<{
+    isProcessing: boolean;
+    progress: number;
+    queue: { pending: number; processing: number; completed: number; failed: number; total: number };
+    message: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCaseData();
     fetchDocuments();
+    fetchProcessingStatus();
   }, [caseId]);
+
+  // Poll for processing status while documents are being analyzed
+  useEffect(() => {
+    if (processingStatus?.isProcessing) {
+      const interval = setInterval(() => {
+        fetchProcessingStatus();
+        fetchDocuments(); // Refresh documents as they get classified
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [processingStatus?.isProcessing, caseId]);
 
   const fetchCaseData = async () => {
     try {
@@ -136,6 +158,36 @@ export default function CaseDetailPage() {
       }
     } catch (error) {
       console.error("Failed to fetch documents:", error);
+    }
+  };
+
+  const fetchProcessingStatus = async () => {
+    try {
+      const response = await fetch(`/api/cases/${caseId}/processing-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setProcessingStatus(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch processing status:", error);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      const response = await fetch(`/api/cases/${caseId}/queue-documents`, {
+        method: "POST",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Refresh processing status
+        await fetchProcessingStatus();
+      }
+    } catch (error) {
+      console.error("Failed to queue documents:", error);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -222,6 +274,21 @@ export default function CaseDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {documents.length > 0 && stats.classified < stats.total && (
+            <Button
+              onClick={handleAnalyze}
+              disabled={analyzing || processingStatus?.isProcessing}
+            >
+              {analyzing || processingStatus?.isProcessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Brain className="mr-2 h-4 w-4" />
+              )}
+              {processingStatus?.isProcessing
+                ? `Analyzing (${processingStatus.queue.completed}/${processingStatus.queue.total})`
+                : "Analyze Documents"}
+            </Button>
+          )}
           {caseData.dropboxFolderPath && (
             <Button
               variant="outline"
@@ -244,6 +311,28 @@ export default function CaseDetailPage() {
           </Link>
         </div>
       </div>
+
+      {/* Processing Status Banner */}
+      {processingStatus?.isProcessing && (
+        <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <Brain className="h-6 w-6 text-blue-600 animate-pulse" />
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium text-blue-900 dark:text-blue-100">
+                    {processingStatus.message}
+                  </span>
+                  <span className="text-sm text-blue-700 dark:text-blue-300">
+                    {processingStatus.progress}%
+                  </span>
+                </div>
+                <Progress value={processingStatus.progress} className="h-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
