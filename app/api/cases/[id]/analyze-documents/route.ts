@@ -1,0 +1,144 @@
+/**
+ * Immediate Document Analysis API
+ * Processes unclassified documents immediately (no queue)
+ * Better for Vercel Hobby plan where crons only run daily
+ */
+
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/db/db';
+import { casesTable, documentsTable } from '@/db/schema';
+import { eq, and, isNull } from 'drizzle-orm';
+import { classifyAndStore } from '@/lib/ai/classification';
+
+// Process up to 5 documents per request to avoid timeout
+const MAX_DOCS_PER_REQUEST = 5;
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { id: caseId } = await params;
+
+    // Verify case belongs to user
+    const [caseRecord] = await db
+      .select()
+      .from(casesTable)
+      .where(and(eq(casesTable.id, caseId), eq(casesTable.userId, userId)))
+      .limit(1);
+
+    if (!caseRecord) {
+      return NextResponse.json(
+        { error: 'Case not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get unclassified documents
+    const unclassifiedDocs = await db
+      .select({ id: documentsTable.id, fileName: documentsTable.fileName })
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.caseId, caseId),
+          eq(documentsTable.userId, userId),
+          isNull(documentsTable.category)
+        )
+      )
+      .limit(MAX_DOCS_PER_REQUEST);
+
+    if (unclassifiedDocs.length === 0) {
+      // Count total documents for stats
+      const allDocs = await db
+        .select({ id: documentsTable.id })
+        .from(documentsTable)
+        .where(
+          and(
+            eq(documentsTable.caseId, caseId),
+            eq(documentsTable.userId, userId)
+          )
+        );
+
+      return NextResponse.json({
+        success: true,
+        message: 'All documents already classified',
+        processed: 0,
+        total: allDocs.length,
+        remaining: 0,
+      });
+    }
+
+    // Count total unclassified for progress
+    const totalUnclassified = await db
+      .select({ id: documentsTable.id })
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.caseId, caseId),
+          eq(documentsTable.userId, userId),
+          isNull(documentsTable.category)
+        )
+      );
+
+    // Process documents immediately
+    const results: Array<{
+      documentId: string;
+      fileName: string;
+      success: boolean;
+      category?: string;
+      error?: string;
+    }> = [];
+
+    for (const doc of unclassifiedDocs) {
+      try {
+        const result = await classifyAndStore(doc.id, userId);
+        results.push({
+          documentId: doc.id,
+          fileName: doc.fileName,
+          success: true,
+          category: result.category,
+        });
+      } catch (error: any) {
+        console.error(`[AnalyzeDocs] Failed to classify ${doc.fileName}:`, error);
+        results.push({
+          documentId: doc.id,
+          fileName: doc.fileName,
+          success: false,
+          error: error.message || 'Classification failed',
+        });
+      }
+    }
+
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    const remaining = totalUnclassified.length - unclassifiedDocs.length;
+
+    return NextResponse.json({
+      success: true,
+      message: `Processed ${successful} of ${unclassifiedDocs.length} documents`,
+      processed: unclassifiedDocs.length,
+      successful,
+      failed,
+      remaining,
+      hasMore: remaining > 0,
+      results,
+    });
+  } catch (error: any) {
+    console.error('[AnalyzeDocs] Error:', error);
+
+    return NextResponse.json(
+      { error: error.message || 'Failed to analyze documents' },
+      { status: 500 }
+    );
+  }
+}

@@ -230,16 +230,39 @@ export default function CaseDetailPage() {
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
-      const response = await fetch(`/api/cases/${caseId}/queue-documents`, {
-        method: "POST",
-      });
-      if (response.ok) {
+      // Process documents immediately (not via queue/cron)
+      // This loops until all documents are classified
+      let hasMore = true;
+      let totalProcessed = 0;
+
+      while (hasMore) {
+        const response = await fetch(`/api/cases/${caseId}/analyze-documents`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error("Failed to analyze documents:", error);
+          break;
+        }
+
         const data = await response.json();
-        // Refresh processing status
+        totalProcessed += data.processed || 0;
+        hasMore = data.hasMore === true;
+
+        // Refresh data after each batch
+        await fetchDocuments();
         await fetchProcessingStatus();
+
+        // Small delay to prevent overwhelming the API
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
+
+      console.log(`Analysis complete: ${totalProcessed} documents processed`);
     } catch (error) {
-      console.error("Failed to queue documents:", error);
+      console.error("Failed to analyze documents:", error);
     } finally {
       setAnalyzing(false);
     }
