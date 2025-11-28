@@ -15,7 +15,7 @@ This plan uses Test-Driven Development (TDD) methodology where tests are written
 | 3 | AI Document Classification | ✅ COMPLETE | Manual classification, PDF extraction |
 | 4 | Auto-Classification & Model Config | ✅ COMPLETE | Background processing, env-driven models |
 | 5 | Document Intelligence (RAG) | ✅ COMPLETE | pgvector, embeddings, semantic search |
-| 6 | Chat Interface | ✅ COMPLETE | Legal assistant with GPT-5-mini |
+| 6 | Chat Interface | ⚠️ 60% DONE | Core chat works, missing multi-chat & citations |
 | 7 | Case Insights & Gap Detection | 🔄 NEXT | Missing docs, recommendations |
 | 8 | Discovery Request Tracking | ⚠️ PARTIAL | Basic RFP UI exists, needs AI mapping |
 | 9 | Timeline, Search & Export | ⏳ PLANNED | Chronological view, PDF export |
@@ -334,26 +334,34 @@ describe('Chat Components', () => {
 });
 ```
 
-### 📦 PHASE 6 DELIVERABLES
-**Vercel Deployment:**
-- ⬜ Chat database schema migrated
-- ⬜ Chat API endpoints functional
-- ⬜ Case page redesigned with panels
-- ⬜ Chat widget fully functional
-- ⬜ RAG-powered responses with citations
-- ⬜ Web search integration
-- ⬜ All chat tests passing
+### 📦 PHASE 6 DELIVERABLES - ACTUAL STATUS
+**What We Built:**
+- ✅ Chat API endpoint (`/api/cases/[id]/chat`) - streaming with SSE
+- ✅ Chat widget functional with real-time responses
+- ✅ RAG-powered responses (semantic search + document context)
+- ✅ Chat history persists in `ai_chat_sessions` table (JSONB)
+- ✅ Response time <5 seconds (streaming starts immediately)
+- ✅ Case page has AI Chat tab
 
-**Acceptance Criteria:**
-- [ ] Attorney can create multiple chats per case
-- [ ] Chat provides document-aware responses
-- [ ] Citations link to source documents
-- [ ] Web search available for legal research
-- [ ] Chat history persists across sessions
-- [ ] Response time <5 seconds
-- [ ] Token usage displayed
+**What We Did NOT Build (Deferred):**
+- ❌ Separate `chats` and `chat_messages` tables (using JSONB instead)
+- ❌ Multiple chats per case (single session per case)
+- ❌ Citations that link to source documents (shows "X docs referenced" badge only)
+- ❌ Web search integration for legal research
+- ❌ Token usage displayed in UI
+- ❌ Dashboard-style panels layout (using tabs instead)
+- ❌ Chat component tests
 
-**Code Coverage Target:** 85%+ for chat components and API
+**Acceptance Criteria - Honest Assessment:**
+- ❌ Attorney can create multiple chats per case → Single session only
+- ✅ Chat provides document-aware responses → YES, full doc list + RAG
+- ⚠️ Citations link to source documents → Shows count, no clickable links
+- ❌ Web search available for legal research → Not implemented
+- ✅ Chat history persists across sessions → YES (JSONB in ai_chat_sessions)
+- ✅ Response time <5 seconds → YES (streaming)
+- ❌ Token usage displayed → Not in UI
+
+**Overall: ~60% of planned features implemented. Core chat works well.**
 
 ---
 
