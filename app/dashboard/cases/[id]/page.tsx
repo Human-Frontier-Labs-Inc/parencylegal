@@ -45,9 +45,11 @@ import {
   Trash2,
   ClipboardList,
   CircleDot,
+  TrendingUp,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
+import { CaseInsightsPanel } from "@/components/insights/case-insights-panel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -501,6 +503,12 @@ export default function CaseDetailPage() {
       <Tabs defaultValue="documents" className="space-y-4">
         <TabsList>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="insights">
+            <span className="flex items-center gap-1">
+              Insights
+              <TrendingUp className="h-3 w-3" />
+            </span>
+          </TabsTrigger>
           <TabsTrigger value="discovery">
             Discovery Requests
             {discoveryRequests.length > 0 && (
@@ -660,6 +668,13 @@ export default function CaseDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <CaseInsightsPanel
+            caseId={caseId}
+            onDocumentClick={(docId) => router.push(`/dashboard/cases/${caseId}/documents/${docId}`)}
+          />
         </TabsContent>
 
         <TabsContent value="info">
