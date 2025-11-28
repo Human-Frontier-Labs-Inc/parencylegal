@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   // Profile creation now happens in the dashboard layout only
   // This reduces unnecessary database calls on public pages

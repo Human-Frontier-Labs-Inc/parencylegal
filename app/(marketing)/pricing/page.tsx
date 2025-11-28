@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 const PricingPageClient = dynamic(() => import("./pricing-page-client"), { ssr: true });
 
 export default async function PricingPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   // Get Stripe price IDs from environment variables
   const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY || '';
