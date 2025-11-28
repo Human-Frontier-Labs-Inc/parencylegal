@@ -264,7 +264,8 @@ export default function CaseDetailPage() {
 
   const fetchDiscoveryRequests = async () => {
     try {
-      const response = await fetch(`/api/cases/${caseId}/discovery-requests`);
+      // Using new Phase 8 API endpoint
+      const response = await fetch(`/api/cases/${caseId}/discovery?stats=true`);
       if (response.ok) {
         const data = await response.json();
         setDiscoveryRequests(data.requests || []);
@@ -279,7 +280,8 @@ export default function CaseDetailPage() {
 
     setAddingRfp(true);
     try {
-      const response = await fetch(`/api/cases/${caseId}/discovery-requests`, {
+      // Using new Phase 8 API endpoint
+      const response = await fetch(`/api/cases/${caseId}/discovery`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newRfp),
@@ -289,6 +291,9 @@ export default function CaseDetailPage() {
         setShowAddRfpDialog(false);
         setNewRfp({ type: 'RFP', number: discoveryRequests.length + 2, text: '', categoryHint: '' });
         await fetchDiscoveryRequests();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to add request");
       }
     } catch (error) {
       console.error("Failed to add RFP:", error);
@@ -299,7 +304,8 @@ export default function CaseDetailPage() {
 
   const handleDeleteRfp = async (requestId: string) => {
     try {
-      const response = await fetch(`/api/cases/${caseId}/discovery-requests/${requestId}`, {
+      // Using new Phase 8 API endpoint
+      const response = await fetch(`/api/cases/${caseId}/discovery/${requestId}`, {
         method: "DELETE",
       });
       if (response.ok) {
@@ -312,7 +318,8 @@ export default function CaseDetailPage() {
 
   const handleUpdateRfpStatus = async (requestId: string, status: string) => {
     try {
-      const response = await fetch(`/api/cases/${caseId}/discovery-requests/${requestId}`, {
+      // Using new Phase 8 API endpoint
+      const response = await fetch(`/api/cases/${caseId}/discovery/${requestId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
