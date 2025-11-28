@@ -44,7 +44,7 @@ export async function semanticMatchDocuments(
     const embeddingVector = `[${embeddingResult.embedding.join(',')}]`;
 
     // Query for similar chunks using cosine similarity
-    const results = await db.execute(sql`
+    const result = await db.execute(sql`
       SELECT
         dc.id as chunk_id,
         dc.document_id,
@@ -63,10 +63,14 @@ export async function semanticMatchDocuments(
       LIMIT ${limit * 3}
     `);
 
+    // postgres.js returns array directly, other drivers return { rows: [...] }
+    // Handle both cases for safety
+    const rows = Array.isArray(result) ? result : (result as any).rows || [];
+
     // Group by document and calculate document-level similarity
     const documentMap = new Map<string, SemanticMatchResult>();
 
-    for (const row of results.rows as any[]) {
+    for (const row of rows as any[]) {
       const docId = row.document_id;
 
       if (!documentMap.has(docId)) {
@@ -124,7 +128,8 @@ export async function getDocumentMatchScore(
         AND embedding IS NOT NULL
     `);
 
-    const rows = result.rows as any[];
+    // postgres.js returns array directly, other drivers return { rows: [...] }
+    const rows = Array.isArray(result) ? result : (result as any).rows || [];
     if (rows.length > 0 && rows[0].max_similarity !== null) {
       return parseFloat(rows[0].max_similarity);
     }
@@ -165,7 +170,9 @@ export async function batchDocumentMatchScores(
       GROUP BY document_id
     `);
 
-    for (const row of result.rows as any[]) {
+    // postgres.js returns array directly, other drivers return { rows: [...] }
+    const rows = Array.isArray(result) ? result : (result as any).rows || [];
+    for (const row of rows as any[]) {
       scores.set(row.document_id, parseFloat(row.max_similarity) || 0);
     }
 

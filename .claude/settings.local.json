@@ -45,7 +45,8 @@
       "WebFetch(domain:openai.com)",
       "WebFetch(domain:platform.openai.com)",
       "WebFetch(domain:docsbot.ai)",
-      "WebFetch(domain:costgoat.com)"
+      "WebFetch(domain:costgoat.com)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   },
