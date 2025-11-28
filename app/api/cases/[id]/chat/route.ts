@@ -1,18 +1,28 @@
 /**
  * AI Chat API with RAG
- * Phase 6: AI Chat Interface
+ * Phase 6: AI Chat Interface with Multiple Chats Support
  *
  * POST /api/cases/:id/chat - Chat with AI about case documents
+ * GET /api/cases/:id/chat - List chat sessions for a case
  */
 
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db/db";
-import { casesTable, aiChatSessionsTable, documentsTable } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { casesTable, chatsTable, chatMessagesTable, documentsTable } from "@/db/schema";
+import { eq, and, desc, asc } from "drizzle-orm";
 import OpenAI from "openai";
 import { semanticSearch } from "@/lib/ai/embeddings";
-import { getChatConfig } from "@/lib/ai/model-config";
+import { getChatConfig, calculateCostCents } from "@/lib/ai/model-config";
+
+interface ChatSource {
+  documentId: string;
+  documentName: string;
+  chunkId?: string;
+  excerpt: string;
+  similarity: number;
+  pageNumber?: number;
+}
 
 export async function POST(
   request: NextRequest,
@@ -29,7 +39,7 @@ export async function POST(
 
     const { id: caseId } = await params;
     const body = await request.json();
-    const { message, sessionId, includeContext = true } = body;
+    const { message, chatId, includeContext = true } = body;
 
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -51,32 +61,32 @@ export async function POST(
       });
     }
 
-    // Get or create chat session
-    let session;
-    if (sessionId) {
-      [session] = await db
+    // Get or create chat
+    let chat;
+    if (chatId) {
+      [chat] = await db
         .select()
-        .from(aiChatSessionsTable)
+        .from(chatsTable)
         .where(
           and(
-            eq(aiChatSessionsTable.id, sessionId),
-            eq(aiChatSessionsTable.caseId, caseId),
-            eq(aiChatSessionsTable.userId, userId)
+            eq(chatsTable.id, chatId),
+            eq(chatsTable.caseId, caseId),
+            eq(chatsTable.userId, userId)
           )
         )
         .limit(1);
     }
 
-    if (!session) {
-      // Create new session
-      [session] = await db
-        .insert(aiChatSessionsTable)
+    if (!chat) {
+      // Create new chat with auto-generated title from first message
+      const title = message.length > 50 ? message.substring(0, 47) + "..." : message;
+      [chat] = await db
+        .insert(chatsTable)
         .values({
           caseId,
           userId,
-          type: "chat",
+          title,
           status: "active",
-          messages: [],
           totalInputTokens: 0,
           totalOutputTokens: 0,
           totalCost: 0,
@@ -101,7 +111,7 @@ export async function POST(
     }, {} as Record<string, string>);
 
     // Build context from semantic search
-    let contextChunks: Array<{ content: string; documentName: string; similarity: number }> = [];
+    let sources: ChatSource[] = [];
     let contextTokensUsed = 0;
 
     if (includeContext) {
@@ -114,9 +124,11 @@ export async function POST(
         const chunks = searchResult.chunks || [];
 
         if (chunks.length > 0) {
-          contextChunks = chunks.map((chunk) => ({
-            content: chunk.content,
+          sources = chunks.map((chunk) => ({
+            documentId: chunk.documentId,
             documentName: docMap[chunk.documentId] || "Unknown",
+            chunkId: chunk.chunkId,
+            excerpt: chunk.content.substring(0, 200) + (chunk.content.length > 200 ? "..." : ""),
             similarity: chunk.similarity,
           }));
         }
@@ -139,6 +151,9 @@ export async function POST(
 You help lawyers analyze documents, find information, and answer questions about the case.
 Be concise, accurate, and cite specific documents when possible.
 
+IMPORTANT: When citing documents, use this exact format: [Document: filename.pdf]
+This allows users to click on citations to view the source document.
+
 CASE OVERVIEW:
 - Total documents in this case: ${allDocuments.length}
 - Document categories: ${Object.entries(categoryGroups).map(([cat, docs]) => `${cat} (${docs.length})`).join(", ")}
@@ -147,17 +162,25 @@ FULL DOCUMENT LIST:
 ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.subtype ? `: ${d.subtype}` : ""}]`).join("\n")}
 `;
 
-    if (contextChunks.length > 0) {
+    if (sources.length > 0) {
       systemPrompt += `\nRELEVANT EXCERPTS FROM DOCUMENTS (based on your question):\n`;
-      contextChunks.forEach((chunk, i) => {
-        systemPrompt += `\n[${chunk.documentName}]:\n${chunk.content}\n`;
+      sources.forEach((source) => {
+        systemPrompt += `\n[Document: ${source.documentName}]:\n${source.excerpt}\n`;
       });
     } else {
       systemPrompt += `\nNote: No specific document excerpts matched this query. You can still answer general questions about the case using the document list above, or ask the user to be more specific.`;
     }
 
-    // Get conversation history
-    const history = (session.messages as Array<{ role: string; content: string }>) || [];
+    // Get conversation history from chat_messages
+    const history = await db
+      .select({
+        role: chatMessagesTable.role,
+        content: chatMessagesTable.content,
+      })
+      .from(chatMessagesTable)
+      .where(eq(chatMessagesTable.chatId, chat.id))
+      .orderBy(asc(chatMessagesTable.createdAt))
+      .limit(20); // Last 20 messages for context
 
     // Build messages array
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
@@ -196,12 +219,23 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          // Save user message to database immediately
+          await db.insert(chatMessagesTable).values({
+            chatId: chat.id,
+            role: "user",
+            content: message,
+            inputTokens: 0,
+            outputTokens: 0,
+            contextTokens: contextTokensUsed,
+            model: null,
+          });
+
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
               fullResponse += content;
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ content, type: "content" })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ content, type: "content" })}`)
               );
             }
 
@@ -220,34 +254,41 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
             outputTokens = Math.ceil(fullResponse.length / 4);
           }
 
-          // Update session with new messages and token counts
-          const newMessages = [
-            ...history,
-            { role: "user", content: message, timestamp: new Date().toISOString() },
-            { role: "assistant", content: fullResponse, timestamp: new Date().toISOString() },
-          ];
+          // Calculate cost
+          const costCents = calculateCostCents(inputTokens + contextTokensUsed, outputTokens, chatConfig);
 
+          // Save assistant message to database
+          await db.insert(chatMessagesTable).values({
+            chatId: chat.id,
+            role: "assistant",
+            content: fullResponse,
+            sources: sources.length > 0 ? sources : null,
+            inputTokens,
+            outputTokens,
+            contextTokens: contextTokensUsed,
+            model,
+          });
+
+          // Update chat totals
           await db
-            .update(aiChatSessionsTable)
+            .update(chatsTable)
             .set({
-              messages: newMessages,
-              totalInputTokens: (session.totalInputTokens || 0) + inputTokens + contextTokensUsed,
-              totalOutputTokens: (session.totalOutputTokens || 0) + outputTokens,
-              totalCost: Math.round(
-                (session.totalCost || 0) +
-                  ((inputTokens + contextTokensUsed) * 0.15 + outputTokens * 0.6) / 1000
-              ), // Approximate cost in cents
+              totalInputTokens: (chat.totalInputTokens || 0) + inputTokens + contextTokensUsed,
+              totalOutputTokens: (chat.totalOutputTokens || 0) + outputTokens,
+              totalCost: (chat.totalCost || 0) + costCents,
             })
-            .where(eq(aiChatSessionsTable.id, session.id));
+            .where(eq(chatsTable.id, chat.id));
 
           // Send final message with metadata
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({
                 type: "done",
-                sessionId: session.id,
+                chatId: chat.id,
                 tokensUsed: inputTokens + outputTokens + contextTokensUsed,
-                contextChunks: contextChunks.length,
+                costCents,
+                sources,
+                model,
               })}\n\n`
             )
           );
@@ -280,7 +321,7 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
   }
 }
 
-// GET - List chat sessions for a case
+// GET - List chats for a case or get messages for a specific chat
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -295,37 +336,129 @@ export async function GET(
     }
 
     const { id: caseId } = await params;
+    const { searchParams } = new URL(request.url);
+    const chatId = searchParams.get("chatId");
 
-    // Get chat sessions for this case
-    const sessions = await db
+    // If chatId provided, get messages for that chat
+    if (chatId) {
+      // Verify chat belongs to user
+      const [chat] = await db
+        .select()
+        .from(chatsTable)
+        .where(
+          and(
+            eq(chatsTable.id, chatId),
+            eq(chatsTable.caseId, caseId),
+            eq(chatsTable.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (!chat) {
+        return new Response(JSON.stringify({ error: "Chat not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Get all messages for this chat
+      const messages = await db
+        .select()
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.chatId, chatId))
+        .orderBy(asc(chatMessagesTable.createdAt));
+
+      return new Response(JSON.stringify({ chat, messages }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Otherwise, list all chats for this case
+    const chats = await db
       .select({
-        id: aiChatSessionsTable.id,
-        type: aiChatSessionsTable.type,
-        status: aiChatSessionsTable.status,
-        createdAt: aiChatSessionsTable.createdAt,
-        updatedAt: aiChatSessionsTable.updatedAt,
-        messageCount: aiChatSessionsTable.messages,
+        id: chatsTable.id,
+        title: chatsTable.title,
+        status: chatsTable.status,
+        totalInputTokens: chatsTable.totalInputTokens,
+        totalOutputTokens: chatsTable.totalOutputTokens,
+        totalCost: chatsTable.totalCost,
+        createdAt: chatsTable.createdAt,
+        updatedAt: chatsTable.updatedAt,
       })
-      .from(aiChatSessionsTable)
+      .from(chatsTable)
       .where(
         and(
-          eq(aiChatSessionsTable.caseId, caseId),
-          eq(aiChatSessionsTable.userId, userId),
-          eq(aiChatSessionsTable.type, "chat")
+          eq(chatsTable.caseId, caseId),
+          eq(chatsTable.userId, userId)
         )
       )
-      .orderBy(desc(aiChatSessionsTable.updatedAt));
+      .orderBy(desc(chatsTable.updatedAt));
 
-    const formattedSessions = sessions.map((s) => ({
-      ...s,
-      messageCount: Array.isArray(s.messageCount) ? s.messageCount.length : 0,
-    }));
-
-    return new Response(JSON.stringify({ sessions: formattedSessions }), {
+    return new Response(JSON.stringify({ chats }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("[Chat] Error listing sessions:", error);
+    console.error("[Chat] Error listing chats:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+// DELETE - Delete a chat
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const { id: caseId } = await params;
+    const { searchParams } = new URL(request.url);
+    const chatId = searchParams.get("chatId");
+
+    if (!chatId) {
+      return new Response(JSON.stringify({ error: "chatId is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify chat belongs to user
+    const [chat] = await db
+      .select()
+      .from(chatsTable)
+      .where(
+        and(
+          eq(chatsTable.id, chatId),
+          eq(chatsTable.caseId, caseId),
+          eq(chatsTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!chat) {
+      return new Response(JSON.stringify({ error: "Chat not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Delete the chat (messages cascade)
+    await db.delete(chatsTable).where(eq(chatsTable.id, chatId));
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    console.error("[Chat] Error deleting chat:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
