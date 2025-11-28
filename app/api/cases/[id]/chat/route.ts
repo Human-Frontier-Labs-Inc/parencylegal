@@ -156,11 +156,16 @@ If you don't know something or it's not in the provided context, say so.`;
     const model = chatConfig.model;
 
     // Stream the response
+    // Note: GPT-5 models use max_completion_tokens instead of max_tokens
+    const isGpt5 = model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
     const stream = await openai.chat.completions.create({
       model,
       messages,
       stream: true,
-      max_tokens: 1000,
+      ...(isGpt5
+        ? { max_completion_tokens: chatConfig.maxTokens }
+        : { max_tokens: chatConfig.maxTokens }
+      ),
     });
 
     // Create a TransformStream to process the OpenAI stream
