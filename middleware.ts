@@ -5,9 +5,16 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
 // Clerk middleware with custom logic for payment redirects and webhook handling
 export default clerkMiddleware(async (auth, req) => {
-  // For API routes - just pass through, Clerk middleware already set up auth context
-  // Don't do any redirects or custom handling for API routes
+  // For webhook routes that don't need auth - pass through immediately
+  if (req.nextUrl.pathname.startsWith('/api/stripe/webhooks') ||
+      req.nextUrl.pathname.startsWith('/api/cron/')) {
+    return NextResponse.next();
+  }
+
+  // For other API routes - Clerk has already set up auth context via clerkMiddleware
+  // Just continue without redirects
   if (req.nextUrl.pathname.startsWith('/api/')) {
+    // Auth context is available, just proceed
     return NextResponse.next();
   }
 
@@ -75,7 +82,7 @@ export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Always run for API routes - explicitly include all API paths
+    '/api/:path*',
   ],
 };
