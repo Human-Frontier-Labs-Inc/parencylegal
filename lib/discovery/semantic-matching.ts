@@ -40,7 +40,8 @@ export async function semanticMatchDocuments(
 
   try {
     // Generate embedding for the request text
-    const embedding = await generateEmbedding(requestText);
+    const embeddingResult = await generateEmbedding(requestText);
+    const embeddingVector = `[${embeddingResult.embedding.join(',')}]`;
 
     // Query for similar chunks using cosine similarity
     const results = await db.execute(sql`
@@ -51,13 +52,13 @@ export async function semanticMatchDocuments(
         d.file_name,
         d.category,
         d.subtype,
-        1 - (dc.embedding <=> ${JSON.stringify(embedding)}::vector) as similarity
+        1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity
       FROM document_chunks dc
       JOIN documents d ON dc.document_id = d.id
       WHERE d.case_id = ${caseId}
         AND d.user_id = ${userId}
         AND dc.embedding IS NOT NULL
-        AND 1 - (dc.embedding <=> ${JSON.stringify(embedding)}::vector) >= ${minSimilarity}
+        AND 1 - (dc.embedding <=> ${embeddingVector}::vector) >= ${minSimilarity}
       ORDER BY similarity DESC
       LIMIT ${limit * 3}
     `);
@@ -111,12 +112,13 @@ export async function getDocumentMatchScore(
 ): Promise<number> {
   try {
     // Generate embedding for the request text
-    const embedding = await generateEmbedding(requestText);
+    const embeddingResult = await generateEmbedding(requestText);
+    const embeddingVector = `[${embeddingResult.embedding.join(',')}]`;
 
     // Get best matching chunk for this document
     const result = await db.execute(sql`
       SELECT
-        MAX(1 - (embedding <=> ${JSON.stringify(embedding)}::vector)) as max_similarity
+        MAX(1 - (embedding <=> ${embeddingVector}::vector)) as max_similarity
       FROM document_chunks
       WHERE document_id = ${documentId}
         AND embedding IS NOT NULL
@@ -149,14 +151,14 @@ export async function batchDocumentMatchScores(
 
   try {
     // Generate embedding for the request text
-    const embedding = await generateEmbedding(requestText);
+    const embeddingResult = await generateEmbedding(requestText);
+    const embeddingVector = `[${embeddingResult.embedding.join(',')}]`;
 
     // Query for all documents at once
-    const placeholders = documentIds.map(() => "?").join(", ");
     const result = await db.execute(sql`
       SELECT
         document_id,
-        MAX(1 - (embedding <=> ${JSON.stringify(embedding)}::vector)) as max_similarity
+        MAX(1 - (embedding <=> ${embeddingVector}::vector)) as max_similarity
       FROM document_chunks
       WHERE document_id = ANY(${documentIds}::text[])
         AND embedding IS NOT NULL
