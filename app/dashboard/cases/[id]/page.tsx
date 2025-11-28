@@ -748,13 +748,20 @@ export default function CaseDetailPage() {
                   Track RFP (Request for Production) items and see what documents match
                 </CardDescription>
               </div>
-              <Dialog open={showAddRfpDialog} onOpenChange={setShowAddRfpDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Request
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/cases/${caseId}/discovery`)}
+                >
+                  Open Full View
+                </Button>
+                <Dialog open={showAddRfpDialog} onOpenChange={setShowAddRfpDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Request
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add Discovery Request</DialogTitle>
@@ -829,6 +836,7 @@ export default function CaseDetailPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               {discoveryRequests.length === 0 ? (
