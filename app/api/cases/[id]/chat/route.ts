@@ -84,6 +84,22 @@ export async function POST(
         .returning();
     }
 
+    // Get all documents for this case (for statistics and context)
+    const allDocuments = await db
+      .select({
+        id: documentsTable.id,
+        fileName: documentsTable.fileName,
+        category: documentsTable.category,
+        subtype: documentsTable.subtype,
+      })
+      .from(documentsTable)
+      .where(eq(documentsTable.caseId, caseId));
+
+    const docMap = allDocuments.reduce((acc, d) => {
+      acc[d.id] = d.fileName;
+      return acc;
+    }, {} as Record<string, string>);
+
     // Build context from semantic search
     let contextChunks: Array<{ content: string; documentName: string; similarity: number }> = [];
     let contextTokensUsed = 0;
@@ -98,20 +114,6 @@ export async function POST(
         const chunks = searchResult.chunks || [];
 
         if (chunks.length > 0) {
-          // Get document names for context
-          const docIds = [...new Set(chunks.map((c) => c.documentId))];
-          const docs = docIds.length > 0
-            ? await db
-                .select({ id: documentsTable.id, fileName: documentsTable.fileName })
-                .from(documentsTable)
-                .where(eq(documentsTable.caseId, caseId))
-            : [];
-
-          const docMap = docs.reduce((acc, d) => {
-            acc[d.id] = d.fileName;
-            return acc;
-          }, {} as Record<string, string>);
-
           contextChunks = chunks.map((chunk) => ({
             content: chunk.content,
             documentName: docMap[chunk.documentId] || "Unknown",
@@ -124,17 +126,34 @@ export async function POST(
       }
     }
 
+    // Build case statistics for the AI
+    const categoryGroups = allDocuments.reduce((acc, doc) => {
+      const cat = doc.category || "Uncategorized";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(doc.fileName);
+      return acc;
+    }, {} as Record<string, string[]>);
+
     // Build system prompt with context
     let systemPrompt = `You are a helpful legal assistant for the case "${caseData.name}".
 You help lawyers analyze documents, find information, and answer questions about the case.
 Be concise, accurate, and cite specific documents when possible.
-If you don't know something or it's not in the provided context, say so.`;
+
+CASE OVERVIEW:
+- Total documents in this case: ${allDocuments.length}
+- Document categories: ${Object.entries(categoryGroups).map(([cat, docs]) => `${cat} (${docs.length})`).join(", ")}
+
+FULL DOCUMENT LIST:
+${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.subtype ? `: ${d.subtype}` : ""}]`).join("\n")}
+`;
 
     if (contextChunks.length > 0) {
-      systemPrompt += `\n\nRelevant document excerpts:\n`;
+      systemPrompt += `\nRELEVANT EXCERPTS FROM DOCUMENTS (based on your question):\n`;
       contextChunks.forEach((chunk, i) => {
         systemPrompt += `\n[${chunk.documentName}]:\n${chunk.content}\n`;
       });
+    } else {
+      systemPrompt += `\nNote: No specific document excerpts matched this query. You can still answer general questions about the case using the document list above, or ask the user to be more specific.`;
     }
 
     // Get conversation history
