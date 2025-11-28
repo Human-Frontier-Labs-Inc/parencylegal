@@ -10,19 +10,7 @@ import { db } from '@/db/db';
 import { documentChunksTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { DocumentChunk } from './chunking';
-import { DEFAULT_EMBEDDING_MODEL, DEFAULT_DIMENSIONS } from '@/db/schema/document-chunks-schema';
-
-// Get embedding model from environment or use default
-export function getEmbeddingModel(): string {
-  return process.env.OPENAI_MODEL_EMBEDDING || DEFAULT_EMBEDDING_MODEL;
-}
-
-// Cost per 1M tokens for embedding models
-const EMBEDDING_COSTS: Record<string, number> = {
-  'text-embedding-3-small': 0.02,
-  'text-embedding-3-large': 0.13,
-  'text-embedding-ada-002': 0.10,
-};
+import { getEmbeddingConfig, getEmbeddingModel } from './model-config';
 
 let openaiClient: OpenAI | null = null;
 
@@ -234,8 +222,8 @@ export async function semanticSearch(
 /**
  * Calculate embedding cost in cents
  */
-export function calculateEmbeddingCost(tokensUsed: number, model?: string): number {
-  const embeddingModel = model || getEmbeddingModel();
-  const costPerMillion = EMBEDDING_COSTS[embeddingModel] || 0.02;
-  return (tokensUsed / 1_000_000) * costPerMillion * 100; // Convert to cents
+export function calculateEmbeddingCost(tokensUsed: number): number {
+  const config = getEmbeddingConfig();
+  // costPer1k is in dollars, convert to cents
+  return Math.round((tokensUsed / 1000) * config.costPer1k * 100);
 }
