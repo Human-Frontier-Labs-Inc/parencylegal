@@ -24,50 +24,60 @@ export interface EmbeddingModelConfig {
   costPer1k: number;
 }
 
-// Default model configurations
+// Default model configurations (Updated Nov 2025 for GPT-5 family)
 const DEFAULT_MODELS: ModelConfigs = {
   classification: {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-nano',  // Best for classification - fast and cheap
     maxTokens: 500,
     temperature: 0.1,
-    inputCostPer1k: 0.00015,
-    outputCostPer1k: 0.0006,
+    inputCostPer1k: 0.00005,  // $0.05 per 1M tokens
+    outputCostPer1k: 0.0004,  // $0.40 per 1M tokens
   },
   chat: {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',  // Best for legal assistant - balanced performance
     maxTokens: 2000,
     temperature: 0.7,
-    inputCostPer1k: 0.00015,
-    outputCostPer1k: 0.0006,
+    inputCostPer1k: 0.00025,  // $0.25 per 1M tokens
+    outputCostPer1k: 0.002,   // $2.00 per 1M tokens
   },
   embedding: {
-    model: 'text-embedding-3-large',
-    dimensions: 3072,
-    costPer1k: 0.00013,
+    model: 'text-embedding-3-small',  // 90% cheaper than large, sufficient for RAG
+    dimensions: 1536,
+    costPer1k: 0.00002,  // $0.02 per 1M tokens
   },
 };
 
-// Model pricing lookup (per 1K tokens in dollars)
+// Model pricing lookup (per 1K tokens in dollars) - Updated Nov 2025
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  // GPT-4o family
-  'gpt-4o': { input: 0.005, output: 0.015 },
-  'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
+  // GPT-5 family (Released Aug 2025)
+  'gpt-5-pro': { input: 0.015, output: 0.12 },      // $15/$120 per 1M
+  'gpt-5.1': { input: 0.00125, output: 0.01 },      // $1.25/$10 per 1M
+  'gpt-5': { input: 0.00125, output: 0.01 },        // $1.25/$10 per 1M
+  'gpt-5-mini': { input: 0.00025, output: 0.002 },  // $0.25/$2 per 1M
+  'gpt-5-nano': { input: 0.00005, output: 0.0004 }, // $0.05/$0.40 per 1M
 
-  // GPT-5 family (hypothetical - will update when available)
-  'gpt-5': { input: 0.01, output: 0.03 },
-  'gpt-5-mini': { input: 0.001, output: 0.003 },
-  'gpt-5-nano': { input: 0.0003, output: 0.0012 },
+  // GPT-4 family (Legacy)
+  'gpt-4o': { input: 0.0025, output: 0.01 },        // $2.50/$10 per 1M
+  'gpt-4o-mini': { input: 0.00015, output: 0.0006 },// $0.15/$0.60 per 1M
+  'gpt-4.1': { input: 0.002, output: 0.008 },       // $2/$8 per 1M
+  'gpt-4.1-mini': { input: 0.0004, output: 0.0016 },// $0.40/$1.60 per 1M
+
+  // Reasoning models (o-series)
+  'o1': { input: 0.015, output: 0.06 },             // $15/$60 per 1M
+  'o1-mini': { input: 0.0011, output: 0.0044 },     // $1.10/$4.40 per 1M
+  'o3': { input: 0.002, output: 0.008 },            // $2/$8 per 1M
+  'o3-mini': { input: 0.0011, output: 0.0044 },     // $1.10/$4.40 per 1M
 
   // Fallback for unknown models
-  'default': { input: 0.001, output: 0.003 },
+  'default': { input: 0.00025, output: 0.002 },
 };
 
-// Embedding model pricing (per 1K tokens)
+// Embedding model pricing (per 1K tokens) - Updated Nov 2025
 const EMBEDDING_PRICING: Record<string, number> = {
-  'text-embedding-3-large': 0.00013,
-  'text-embedding-3-small': 0.00002,
-  'text-embedding-ada-002': 0.0001,
-  'default': 0.0001,
+  'text-embedding-3-small': 0.00002,  // $0.02 per 1M - RECOMMENDED
+  'text-embedding-3-large': 0.00013,  // $0.13 per 1M
+  'text-embedding-ada-002': 0.0001,   // $0.10 per 1M (legacy)
+  'default': 0.00002,
 };
 
 /**
@@ -186,11 +196,23 @@ export function isModelSupported(model: string): boolean {
  */
 export function getModelDisplayName(model: string): string {
   const displayNames: Record<string, string> = {
-    'gpt-4o': 'GPT-4o',
-    'gpt-4o-mini': 'GPT-4o Mini',
+    // GPT-5 family
+    'gpt-5-pro': 'GPT-5 Pro',
+    'gpt-5.1': 'GPT-5.1',
     'gpt-5': 'GPT-5',
     'gpt-5-mini': 'GPT-5 Mini',
     'gpt-5-nano': 'GPT-5 Nano',
+    // GPT-4 family
+    'gpt-4o': 'GPT-4o',
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-4.1': 'GPT-4.1',
+    'gpt-4.1-mini': 'GPT-4.1 Mini',
+    // Reasoning models
+    'o1': 'o1',
+    'o1-mini': 'o1 Mini',
+    'o3': 'o3',
+    'o3-mini': 'o3 Mini',
+    // Embeddings
     'text-embedding-3-large': 'Embeddings Large',
     'text-embedding-3-small': 'Embeddings Small',
   };
