@@ -12,11 +12,7 @@ import { casesTable, aiChatSessionsTable, documentsTable } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import OpenAI from "openai";
 import { semanticSearch } from "@/lib/ai/embeddings";
-
-// Get chat model from environment
-function getChatModel(): string {
-  return process.env.OPENAI_MODEL_CHAT || "gpt-4o-mini";
-}
+import { getChatConfig } from "@/lib/ai/model-config";
 
 export async function POST(
   request: NextRequest,
@@ -156,7 +152,8 @@ If you don't know something or it's not in the provided context, say so.`;
 
     // Create OpenAI client
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const model = getChatModel();
+    const chatConfig = getChatConfig();
+    const model = chatConfig.model;
 
     // Stream the response
     const stream = await openai.chat.completions.create({
