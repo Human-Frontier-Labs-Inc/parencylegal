@@ -61,7 +61,7 @@ export async function deleteProfileAction(userId: string): Promise<ActionResult<
  */
 export async function checkPaymentFailedAction(): Promise<{ paymentFailed: boolean }> {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return { paymentFailed: false };
@@ -90,8 +90,8 @@ export async function getUserPlanInfoAction(): Promise<ActionResult<{
   nextCreditRenewal: Date | null;
 } | null>> {
   try {
-    const { userId } = auth();
-    
+    const { userId } = await auth();
+
     if (!userId) {
       return { 
         isSuccess: false, 

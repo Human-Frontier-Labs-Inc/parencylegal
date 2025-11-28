@@ -11,7 +11,7 @@ import { auth } from "@clerk/nextjs/server";
  * Full credit system will be implemented in Phase 2+
  */
 export async function getCreditStatus() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return {
@@ -48,7 +48,7 @@ export async function hasCreditsAvailable(requiredCredits: number = 1) {
  * Stub implementation - No-op for Phase 1
  */
 export async function useCredits(creditsToUse: number, description: string) {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return { success: false, error: "Not authenticated" };
@@ -62,7 +62,7 @@ export async function useCredits(creditsToUse: number, description: string) {
  * Stub implementation - Always returns 1000 for Phase 1
  */
 export async function getRemainingCredits() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return 0;
@@ -89,7 +89,7 @@ export async function withPremiumFeature<T>(
     featureName?: string;
   }
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return { success: false, error: "Not authenticated" };
