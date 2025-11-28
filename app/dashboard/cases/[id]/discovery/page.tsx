@@ -7,8 +7,8 @@
  * Manage RFPs, Interrogatories, and document mappings
  */
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,12 +88,9 @@ interface DocumentMapping {
   };
 }
 
-export default function DiscoveryPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id: caseId } = use(params);
+export default function DiscoveryPage() {
+  const params = useParams();
+  const caseId = params.id as string;
   const router = useRouter();
 
   const [requests, setRequests] = useState<DiscoveryRequest[]>([]);
