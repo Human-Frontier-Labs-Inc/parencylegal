@@ -41,7 +41,11 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.npmjs.com)",
       "Bash(npx drizzle-kit generate)",
-      "Bash(PGPASSWORD=P3auBNxXLF0foUjK psql:*)"
+      "Bash(PGPASSWORD=P3auBNxXLF0foUjK psql:*)",
+      "WebFetch(domain:openai.com)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:docsbot.ai)",
+      "WebFetch(domain:costgoat.com)"
     ],
     "deny": []
   },
