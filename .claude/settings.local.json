@@ -46,7 +46,8 @@
       "WebFetch(domain:platform.openai.com)",
       "WebFetch(domain:docsbot.ai)",
       "WebFetch(domain:costgoat.com)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(vercel --prod --force)"
     ],
     "deny": []
   },
