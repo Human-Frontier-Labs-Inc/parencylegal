@@ -123,6 +123,10 @@ export async function POST(
     const failed = results.filter(r => !r.success).length;
     const remaining = totalUnclassified.length - unclassifiedDocs.length;
 
+    // Only continue if we had at least one success
+    // If all documents in this batch failed, stop the loop to prevent infinite retries
+    const hasMore = remaining > 0 && successful > 0;
+
     return NextResponse.json({
       success: true,
       message: `Processed ${successful} of ${unclassifiedDocs.length} documents`,
@@ -130,7 +134,8 @@ export async function POST(
       successful,
       failed,
       remaining,
-      hasMore: remaining > 0,
+      hasMore,
+      allFailed: failed > 0 && successful === 0,
       results,
     });
   } catch (error: any) {

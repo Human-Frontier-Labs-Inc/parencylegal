@@ -234,6 +234,7 @@ export default function CaseDetailPage() {
       // This loops until all documents are classified
       let hasMore = true;
       let totalProcessed = 0;
+      let totalSuccessful = 0;
 
       while (hasMore) {
         const response = await fetch(`/api/cases/${caseId}/analyze-documents`, {
@@ -243,12 +244,21 @@ export default function CaseDetailPage() {
         if (!response.ok) {
           const error = await response.json();
           console.error("Failed to analyze documents:", error);
+          alert(`Analysis failed: ${error.error || 'Unknown error'}`);
           break;
         }
 
         const data = await response.json();
         totalProcessed += data.processed || 0;
+        totalSuccessful += data.successful || 0;
         hasMore = data.hasMore === true;
+
+        // If all documents in this batch failed, show error and stop
+        if (data.allFailed) {
+          console.error("All documents in batch failed:", data.results);
+          alert(`Classification failed for ${data.failed} document(s). Check the console for details.`);
+          break;
+        }
 
         // Refresh data after each batch
         await fetchDocuments();
@@ -260,9 +270,10 @@ export default function CaseDetailPage() {
         }
       }
 
-      console.log(`Analysis complete: ${totalProcessed} documents processed`);
+      console.log(`Analysis complete: ${totalSuccessful} of ${totalProcessed} documents classified`);
     } catch (error) {
       console.error("Failed to analyze documents:", error);
+      alert("Analysis failed. Check the console for details.");
     } finally {
       setAnalyzing(false);
     }
