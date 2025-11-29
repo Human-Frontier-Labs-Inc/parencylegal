@@ -28,7 +28,7 @@ export interface EmbeddingModelConfig {
 const DEFAULT_MODELS: ModelConfigs = {
   classification: {
     model: 'gpt-5-nano',  // Best for classification - fast and cheap
-    maxTokens: 500,
+    maxTokens: 2000,  // Increased from 500 - GPT-5 models need buffer for reasoning overhead
     temperature: 0.1,
     inputCostPer1k: 0.00005,  // $0.05 per 1M tokens
     outputCostPer1k: 0.0004,  // $0.40 per 1M tokens

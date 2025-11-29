@@ -313,10 +313,23 @@ export async function classifyDocument(
       temperature: modelConfig.temperature,
     };
 
+    // Check if this is a GPT-5 model (has reasoning capabilities)
+    const isGpt5Model = modelConfig.model.startsWith('gpt-5');
+
     // Add appropriate token limit parameter
     if (isNewModel) {
-      requestParams.max_completion_tokens = modelConfig.maxTokens;
-      console.log(`[Classification] Using max_completion_tokens: ${modelConfig.maxTokens}`);
+      // GPT-5 models need much higher token limits due to reasoning overhead
+      // Even with reasoning_effort='none', use a safe buffer
+      const effectiveMaxTokens = isGpt5Model ? Math.max(modelConfig.maxTokens, 2000) : modelConfig.maxTokens;
+      requestParams.max_completion_tokens = effectiveMaxTokens;
+      console.log(`[Classification] Using max_completion_tokens: ${effectiveMaxTokens}`);
+
+      // Disable reasoning for classification tasks - saves ~1300+ tokens
+      // GPT-5 models support reasoning_effort parameter
+      if (isGpt5Model) {
+        requestParams.reasoning_effort = 'none';
+        console.log(`[Classification] Disabled reasoning for GPT-5 classification`);
+      }
     } else {
       requestParams.max_tokens = modelConfig.maxTokens;
       console.log(`[Classification] Using max_tokens: ${modelConfig.maxTokens}`);
