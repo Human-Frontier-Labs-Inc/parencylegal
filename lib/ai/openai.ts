@@ -294,6 +294,9 @@ export async function classifyDocument(
                        modelConfig.model.startsWith('gpt-5') ||
                        modelConfig.model.startsWith('gpt-4o');
 
+    // Debug logging
+    console.log(`[Classification] Model: ${modelConfig.model}, isNewModel: ${isNewModel}`);
+
     // Build request params - use max_completion_tokens for new models
     const requestParams: any = {
       model: modelConfig.model,
@@ -313,8 +316,10 @@ export async function classifyDocument(
     // Add appropriate token limit parameter
     if (isNewModel) {
       requestParams.max_completion_tokens = modelConfig.maxTokens;
+      console.log(`[Classification] Using max_completion_tokens: ${modelConfig.maxTokens}`);
     } else {
       requestParams.max_tokens = modelConfig.maxTokens;
+      console.log(`[Classification] Using max_tokens: ${modelConfig.maxTokens}`);
     }
 
     // Only add response_format for models that support it (not o1/o3 reasoning models)
