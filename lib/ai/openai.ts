@@ -287,8 +287,15 @@ export async function classifyDocument(
   const modelConfig = getClassificationConfig();
 
   try {
-    // Make API call
-    const response = await client.chat.completions.create({
+    // Determine if model requires max_completion_tokens (o1, o3, gpt-5 series)
+    // or legacy max_tokens (gpt-4, gpt-3.5 series)
+    const isNewModel = modelConfig.model.startsWith('o1') ||
+                       modelConfig.model.startsWith('o3') ||
+                       modelConfig.model.startsWith('gpt-5') ||
+                       modelConfig.model.startsWith('gpt-4o');
+
+    // Build request params - use max_completion_tokens for new models
+    const requestParams: any = {
       model: modelConfig.model,
       messages: [
         {
@@ -301,9 +308,23 @@ export async function classifyDocument(
         },
       ],
       temperature: modelConfig.temperature,
-      max_tokens: modelConfig.maxTokens,
-      response_format: { type: 'json_object' },
-    });
+    };
+
+    // Add appropriate token limit parameter
+    if (isNewModel) {
+      requestParams.max_completion_tokens = modelConfig.maxTokens;
+    } else {
+      requestParams.max_tokens = modelConfig.maxTokens;
+    }
+
+    // Only add response_format for models that support it (not o1/o3 reasoning models)
+    const isReasoningModel = modelConfig.model.startsWith('o1') || modelConfig.model.startsWith('o3');
+    if (!isReasoningModel) {
+      requestParams.response_format = { type: 'json_object' };
+    }
+
+    // Make API call
+    const response = await client.chat.completions.create(requestParams);
 
     const content = response.choices[0]?.message?.content || '{}';
     const tokensUsed = response.usage?.total_tokens || 0;
