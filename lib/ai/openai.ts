@@ -297,6 +297,10 @@ export async function classifyDocument(
     // Debug logging
     console.log(`[Classification] Model: ${modelConfig.model}, isNewModel: ${isNewModel}`);
 
+    // Check if this is a GPT-5 model (has reasoning capabilities)
+    // GPT-5 models do NOT support temperature - they use reasoning_effort instead
+    const isGpt5Model = modelConfig.model.startsWith('gpt-5');
+
     // Build request params - use max_completion_tokens for new models
     const requestParams: any = {
       model: modelConfig.model,
@@ -310,11 +314,12 @@ export async function classifyDocument(
           content: prompt,
         },
       ],
-      temperature: modelConfig.temperature,
     };
 
-    // Check if this is a GPT-5 model (has reasoning capabilities)
-    const isGpt5Model = modelConfig.model.startsWith('gpt-5');
+    // Only add temperature for non-GPT-5 models (reasoning models don't support it)
+    if (!isGpt5Model) {
+      requestParams.temperature = modelConfig.temperature;
+    }
 
     // Add appropriate token limit parameter
     if (isNewModel) {
