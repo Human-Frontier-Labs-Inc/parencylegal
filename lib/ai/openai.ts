@@ -324,11 +324,11 @@ export async function classifyDocument(
       requestParams.max_completion_tokens = effectiveMaxTokens;
       console.log(`[Classification] Using max_completion_tokens: ${effectiveMaxTokens}`);
 
-      // Disable reasoning for classification tasks - saves ~1300+ tokens
-      // GPT-5 models support reasoning_effort parameter
+      // Minimize reasoning for classification tasks - saves tokens
+      // GPT-5 models support reasoning_effort: 'minimal', 'low', 'medium', 'high'
       if (isGpt5Model) {
-        requestParams.reasoning_effort = 'none';
-        console.log(`[Classification] Disabled reasoning for GPT-5 classification`);
+        requestParams.reasoning_effort = 'minimal';
+        console.log(`[Classification] Using minimal reasoning for GPT-5 classification`);
       }
     } else {
       requestParams.max_tokens = modelConfig.maxTokens;
