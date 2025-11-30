@@ -8,7 +8,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/db';
 import { casesTable, documentsTable } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { documentProcessingQueueTable, QUEUE_STATUS } from '@/db/schema/document-processing-queue-schema';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { classifyAndStore } from '@/lib/ai/classification';
 
 // Process up to 5 documents per request to avoid timeout
@@ -137,6 +138,31 @@ async function handleAnalyze(
     const successful = results.filter(r => r.success).length;
     const failed = results.filter(r => !r.success).length;
     const remaining = totalUnclassified.length - unclassifiedDocs.length;
+
+    // Update queue status for processed documents
+    // Mark successfully classified documents as completed in the queue
+    const successfulDocIds = results.filter(r => r.success).map(r => r.documentId);
+    const failedDocIds = results.filter(r => !r.success).map(r => r.documentId);
+
+    if (successfulDocIds.length > 0) {
+      await db
+        .update(documentProcessingQueueTable)
+        .set({
+          status: QUEUE_STATUS.COMPLETED,
+          completedAt: new Date(),
+        })
+        .where(inArray(documentProcessingQueueTable.documentId, successfulDocIds));
+    }
+
+    if (failedDocIds.length > 0) {
+      await db
+        .update(documentProcessingQueueTable)
+        .set({
+          status: QUEUE_STATUS.FAILED,
+          errorMessage: 'Classification failed via direct analysis',
+        })
+        .where(inArray(documentProcessingQueueTable.documentId, failedDocIds));
+    }
 
     // Only continue if we had at least one success
     // If all documents in this batch failed, stop the loop to prevent infinite retries
