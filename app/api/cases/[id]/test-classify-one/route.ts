@@ -16,9 +16,24 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Allow both GET and POST for easy browser testing
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleRequest(request, params);
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
+) {
+  return handleRequest(request, params);
+}
+
+async function handleRequest(
+  request: Request,
+  params: Promise<{ id: string }>
 ) {
   const logs: string[] = [];
   const log = (msg: string) => {
