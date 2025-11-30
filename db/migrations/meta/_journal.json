@@ -36,6 +36,13 @@
       "when": 1764343862050,
       "tag": "0004_lyrical_joystick",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764537836427,
+      "tag": "0005_daily_fixer",
+      "breakpoints": true
     }
   ]
 }
