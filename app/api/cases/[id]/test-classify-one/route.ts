@@ -111,7 +111,7 @@ export async function POST(
     log('Attempting text extraction...');
     let extractedText = '';
     try {
-      const { extractText } = await import('@/lib/ai/text-extraction');
+      const { extractText } = await import('@/lib/ai/classification');
       let mimeType = doc.fileType || 'application/pdf';
       if (!mimeType.includes('/')) {
         mimeType = `application/${mimeType}`;
