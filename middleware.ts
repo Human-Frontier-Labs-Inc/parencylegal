@@ -1,3 +1,7 @@
+/**
+ * Clerk Middleware Configuration
+ * Updated: Nov 2025 - Force Vercel rebuild
+ */
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
