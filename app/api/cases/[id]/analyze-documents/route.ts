@@ -14,9 +14,24 @@ import { classifyAndStore } from '@/lib/ai/classification';
 // Process up to 5 documents per request to avoid timeout
 const MAX_DOCS_PER_REQUEST = 5;
 
+// GET handler for browser testing
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleAnalyze(request, params);
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
+) {
+  return handleAnalyze(request, params);
+}
+
+async function handleAnalyze(
+  request: Request,
+  params: Promise<{ id: string }>
 ) {
   try {
     const { userId } = await auth();
