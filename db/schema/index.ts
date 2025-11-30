@@ -14,3 +14,4 @@ export * from "./sync-history-schema";
 export * from "./dropbox-connections-schema";
 export * from "./document-processing-queue-schema";
 export * from "./document-chunks-schema";
+export * from "./export-jobs-schema";
