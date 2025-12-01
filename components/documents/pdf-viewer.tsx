@@ -33,6 +33,8 @@ interface PDFViewerProps {
   height?: string;
   /** Callback when download is clicked */
   onDownload?: () => void;
+  /** Whether the URL is still loading */
+  isLoading?: boolean;
 }
 
 export function PDFViewer({
@@ -41,6 +43,7 @@ export function PDFViewer({
   fileType,
   height = "600px",
   onDownload,
+  isLoading = false,
 }: PDFViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +72,22 @@ export function PDFViewer({
       setLoading(false);
     }
   }, [fileUrl]);
+
+  // Show loading state while fetching preview URL
+  if (isLoading) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center bg-muted rounded-lg border"
+        style={{ height }}
+      >
+        <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+        <p className="text-lg font-medium mb-2">Loading Document...</p>
+        <p className="text-sm text-muted-foreground">
+          Fetching document from storage
+        </p>
+      </div>
+    );
+  }
 
   if (!fileUrl) {
     return (
