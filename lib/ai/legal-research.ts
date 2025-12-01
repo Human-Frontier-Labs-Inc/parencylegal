@@ -220,10 +220,12 @@ export function parseStatuteReference(reference: string): StatuteReference {
     }
   }
 
-  // Check for abbreviated state prefixes
+  // Check for abbreviated state prefixes (like "Cal." -> CA, "Tex." -> TX)
   if (!state) {
     for (const [abbrev, prefix] of Object.entries(STATE_CITE_PREFIXES)) {
-      if (reference.includes(prefix)) {
+      // Use word boundary to match prefixes like "Cal." or "Tex."
+      const prefixPattern = new RegExp(`\\b${prefix.replace(".", "\\.")}`, "i");
+      if (prefixPattern.test(reference)) {
         state = abbrev;
         break;
       }
@@ -238,15 +240,20 @@ export function parseStatuteReference(reference: string): StatuteReference {
     }
   }
 
-  // Extract code name
-  if (reference.toLowerCase().includes("family")) {
+  // Extract code name (handle both full and abbreviated forms)
+  const lowerRef = reference.toLowerCase();
+  if (lowerRef.includes("family") || lowerRef.includes("fam.")) {
     code = "Family Code";
-  } else if (reference.toLowerCase().includes("civil")) {
+  } else if (lowerRef.includes("civil") || lowerRef.includes("civ.")) {
     code = "Civil Code";
-  } else if (reference.toLowerCase().includes("domestic")) {
+  } else if (lowerRef.includes("domestic") || lowerRef.includes("dom.")) {
     code = "Domestic Relations Law";
-  } else if (reference.toLowerCase().includes("penal")) {
+  } else if (lowerRef.includes("penal") || lowerRef.includes("pen.")) {
     code = "Penal Code";
+  } else if (lowerRef.includes("estates") || lowerRef.includes("est.")) {
+    code = "Estates Code";
+  } else if (lowerRef.includes("property") || lowerRef.includes("prop.")) {
+    code = "Property Code";
   }
 
   return { state, code, section };
