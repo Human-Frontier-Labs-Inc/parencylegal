@@ -24,21 +24,24 @@ export interface EmbeddingModelConfig {
   costPer1k: number;
 }
 
-// Default model configurations (GPT-5 family - Released Aug 2025)
+// Default model configurations
+// Note: GPT-5 models have streaming issues with chat completions API (empty delta chunks)
+// See: https://community.openai.com/t/streaming-gpt-5-responses-api-missing-delta-chunks/1357416
+// Using GPT-4o-mini for chat until GPT-5 streaming is fixed
 const DEFAULT_MODELS: ModelConfigs = {
   classification: {
-    model: 'gpt-5-nano',  // Best for classification - fast and cheap
+    model: 'gpt-4o-mini',  // Fast and cheap for classification
     maxTokens: 2000,
     temperature: 0.1,
-    inputCostPer1k: 0.00005,  // $0.05 per 1M tokens
-    outputCostPer1k: 0.0004,  // $0.40 per 1M tokens
+    inputCostPer1k: 0.00015,  // $0.15 per 1M tokens
+    outputCostPer1k: 0.0006,  // $0.60 per 1M tokens
   },
   chat: {
-    model: 'gpt-5-mini',  // Best for legal assistant - balanced performance
+    model: 'gpt-4o-mini',  // Reliable streaming for legal assistant
     maxTokens: 2000,
     temperature: 0.7,
-    inputCostPer1k: 0.00025,  // $0.25 per 1M tokens
-    outputCostPer1k: 0.002,   // $2.00 per 1M tokens
+    inputCostPer1k: 0.00015,  // $0.15 per 1M tokens
+    outputCostPer1k: 0.0006,  // $0.60 per 1M tokens
   },
   embedding: {
     model: 'text-embedding-3-small',  // 90% cheaper than large, sufficient for RAG
