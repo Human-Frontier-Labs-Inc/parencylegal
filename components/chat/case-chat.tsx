@@ -29,6 +29,11 @@ import {
   Coins,
   ChevronRight,
   ExternalLink,
+  FileEdit,
+  BarChart3,
+  Globe,
+  Copy,
+  Download,
 } from "lucide-react";
 
 interface ChatSource {
@@ -38,6 +43,12 @@ interface ChatSource {
   excerpt: string;
   similarity: number;
   pageNumber?: number;
+}
+
+interface DetectedIntent {
+  type: "draft" | "analyze" | "research" | "general";
+  subtype?: string;
+  confidence: number;
 }
 
 interface Message {
@@ -50,6 +61,7 @@ interface Message {
   contextTokens?: number;
   model?: string;
   createdAt?: string;
+  intent?: DetectedIntent;
 }
 
 interface Chat {
@@ -82,6 +94,7 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
   const [needsEmbedding, setNeedsEmbedding] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [tokenUsage, setTokenUsage] = useState({ input: 0, output: 0, cost: 0 });
+  const [currentIntent, setCurrentIntent] = useState<DetectedIntent | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -230,6 +243,11 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
                 setCurrentChatId(data.chatId);
                 setCurrentSources(data.sources || []);
 
+                // Store intent from response
+                if (data.intent) {
+                  setCurrentIntent(data.intent);
+                }
+
                 // Update token usage
                 setTokenUsage((prev) => ({
                   input: prev.input + (data.tokensUsed || 0),
@@ -249,7 +267,7 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
         }
       }
 
-      // Add assistant message with sources
+      // Add assistant message with sources and intent
       if (fullContent) {
         setMessages((prev) => [
           ...prev,
@@ -257,6 +275,7 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
             role: "assistant",
             content: fullContent,
             sources: currentSources,
+            intent: currentIntent || undefined,
           },
         ]);
       }
@@ -287,6 +306,42 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
     setCurrentChatId(null);
     setCurrentSources([]);
     setTokenUsage({ input: 0, output: 0, cost: 0 });
+    setCurrentIntent(null);
+  };
+
+  // Get mode icon and label based on intent
+  const getModeDisplay = (intent: DetectedIntent) => {
+    switch (intent.type) {
+      case "draft":
+        return {
+          icon: <FileEdit className="h-3 w-3" />,
+          label: "Drafting",
+          color: "bg-blue-100 text-blue-700",
+        };
+      case "analyze":
+        return {
+          icon: <BarChart3 className="h-3 w-3" />,
+          label: "Analysis",
+          color: "bg-purple-100 text-purple-700",
+        };
+      case "research":
+        return {
+          icon: <Globe className="h-3 w-3" />,
+          label: "Research",
+          color: "bg-green-100 text-green-700",
+        };
+      default:
+        return null;
+    }
+  };
+
+  // Copy content to clipboard
+  const copyToClipboard = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   const deleteChat = async (chatId: string) => {
@@ -433,6 +488,12 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
             </Button>
             <Bot className="h-5 w-5 text-primary" />
             <span className="font-medium">AI Assistant</span>
+            {currentIntent && getModeDisplay(currentIntent) && (
+              <Badge className={`text-xs ${getModeDisplay(currentIntent)!.color}`}>
+                {getModeDisplay(currentIntent)!.icon}
+                <span className="ml-1">{getModeDisplay(currentIntent)!.label}</span>
+              </Badge>
+            )}
             {currentSources.length > 0 && (
               <Badge variant="secondary" className="text-xs">
                 <FileText className="h-3 w-3 mr-1" />
@@ -469,7 +530,9 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
                 {[
                   "What documents do we have?",
                   "Summarize the financial records",
-                  "Find any mentions of income",
+                  "Draft a discovery request for bank statements",
+                  "Find income discrepancies",
+                  "Research community property laws in Texas",
                 ].map((suggestion) => (
                   <Button
                     key={suggestion}
@@ -512,6 +575,26 @@ export function CaseChat({ caseId, caseName, onDocumentClick }: CaseChatProps) {
                           ? renderMessageContent(message.content, message.sources)
                           : message.content}
                       </p>
+                      {/* Mode indicator for drafts/analysis */}
+                      {message.role === "assistant" && message.intent && getModeDisplay(message.intent) && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge className={`text-xs ${getModeDisplay(message.intent)!.color}`}>
+                            {getModeDisplay(message.intent)!.icon}
+                            <span className="ml-1">{getModeDisplay(message.intent)!.label}</span>
+                          </Badge>
+                          {message.intent.type === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2"
+                              onClick={() => copyToClipboard(message.content)}
+                            >
+                              <Copy className="h-3 w-3 mr-1" />
+                              Copy
+                            </Button>
+                          )}
+                        </div>
+                      )}
                       {/* Source citations for assistant messages */}
                       {message.role === "assistant" && message.sources && message.sources.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-border/50">

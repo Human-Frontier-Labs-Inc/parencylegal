@@ -1,6 +1,7 @@
 /**
- * AI Chat API with RAG
+ * AI Chat API with RAG and Advanced Legal Assistant
  * Phase 6: AI Chat Interface with Multiple Chats Support
+ * Phase 11: Advanced Legal Assistant (Drafting, Analysis, Research)
  *
  * POST /api/cases/:id/chat - Chat with AI about case documents
  * GET /api/cases/:id/chat - List chat sessions for a case
@@ -14,6 +15,8 @@ import { eq, and, desc, asc } from "drizzle-orm";
 import OpenAI from "openai";
 import { semanticSearch } from "@/lib/ai/embeddings";
 import { getChatConfig, calculateCostCents } from "@/lib/ai/model-config";
+import { detectIntent, Intent } from "@/lib/ai/intent-detection";
+import { getDraftingSystemPrompt } from "@/lib/ai/legal-drafting";
 
 interface ChatSource {
   documentId: string;
@@ -146,8 +149,62 @@ export async function POST(
       return acc;
     }, {} as Record<string, string[]>);
 
-    // Build system prompt with context
-    let systemPrompt = `You are a helpful legal assistant for the case "${caseData.name}".
+    // Phase 11: Detect intent to route to appropriate handler
+    const intent = detectIntent(message);
+    console.log(`[Chat] Detected intent: ${intent.type}${intent.subtype ? ` (${intent.subtype})` : ""} - confidence: ${intent.confidence}`);
+
+    // Build system prompt based on intent
+    let systemPrompt = "";
+
+    if (intent.type === "draft" && intent.subtype) {
+      // Use drafting-specific system prompt
+      systemPrompt = getDraftingSystemPrompt(intent.subtype);
+      systemPrompt += `\n\nCASE: ${caseData.name}
+CASE TYPE: ${caseData.type || "Family Law"}
+
+AVAILABLE DOCUMENTS:
+${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.subtype ? `: ${d.subtype}` : ""}]`).join("\n")}
+`;
+    } else if (intent.type === "analyze") {
+      // Analysis-specific system prompt
+      systemPrompt = `You are a legal document analysis assistant specializing in family law cases.
+You help lawyers analyze documents, find discrepancies, track assets, and verify income.
+
+IMPORTANT: When referencing documents, use this exact format: [Document: filename.pdf]
+
+ANALYSIS MODE: ${intent.subtype || "general analysis"}
+${intent.subtype === "comparison" ? "Compare the documents and identify similarities and differences." : ""}
+${intent.subtype === "discrepancy" ? "Look for inconsistencies, conflicts, and suspicious patterns in the data." : ""}
+${intent.subtype === "asset_tracking" ? "Track all assets mentioned and calculate total values." : ""}
+${intent.subtype === "income_verification" ? "Verify income from all sources and flag any discrepancies." : ""}
+
+CASE: ${caseData.name}
+TOTAL DOCUMENTS: ${allDocuments.length}
+
+DOCUMENT LIST:
+${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.subtype ? `: ${d.subtype}` : ""}]`).join("\n")}
+`;
+    } else if (intent.type === "research") {
+      // Research-specific system prompt
+      systemPrompt = `You are a legal research assistant specializing in family law.
+Provide accurate, well-cited legal information.
+Always include relevant statute citations in proper Bluebook format when applicable.
+
+RESEARCH TOPIC: ${intent.topic || message}
+${intent.state ? `STATE: ${intent.state}` : ""}
+
+CASE CONTEXT: ${caseData.name}
+The attorney is working on a family law case and needs legal research support.
+
+When providing legal information:
+1. Be specific about which jurisdiction applies
+2. Cite relevant statutes (e.g., Tex. Fam. Code § 3.002)
+3. Note any recent changes to the law
+4. Mention variations between jurisdictions if relevant
+`;
+    } else {
+      // Default: General RAG-based chat
+      systemPrompt = `You are a helpful legal assistant for the case "${caseData.name}".
 You help lawyers analyze documents, find information, and answer questions about the case.
 Be concise, accurate, and cite specific documents when possible.
 
@@ -161,13 +218,15 @@ CASE OVERVIEW:
 FULL DOCUMENT LIST:
 ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.subtype ? `: ${d.subtype}` : ""}]`).join("\n")}
 `;
+    }
 
+    // Add document context for all intent types (except pure research)
     if (sources.length > 0) {
       systemPrompt += `\nRELEVANT EXCERPTS FROM DOCUMENTS (based on your question):\n`;
       sources.forEach((source) => {
         systemPrompt += `\n[Document: ${source.documentName}]:\n${source.excerpt}\n`;
       });
-    } else {
+    } else if (intent.type !== "research") {
       systemPrompt += `\nNote: No specific document excerpts matched this query. You can still answer general questions about the case using the document list above, or ask the user to be more specific.`;
     }
 
@@ -279,7 +338,7 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
             })
             .where(eq(chatsTable.id, chat.id));
 
-          // Send final message with metadata
+          // Send final message with metadata including detected intent
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({
@@ -289,6 +348,11 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
                 costCents,
                 sources,
                 model,
+                intent: {
+                  type: intent.type,
+                  subtype: intent.subtype,
+                  confidence: intent.confidence,
+                },
               })}\n\n`
             )
           );
