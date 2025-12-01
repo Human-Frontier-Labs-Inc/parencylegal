@@ -47,7 +47,8 @@
       "WebFetch(domain:docsbot.ai)",
       "WebFetch(domain:costgoat.com)",
       "Bash(npx tsc:*)",
-      "Bash(vercel --prod --force)"
+      "Bash(vercel --prod --force)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   },
