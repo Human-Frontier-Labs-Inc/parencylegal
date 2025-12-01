@@ -26,6 +26,22 @@ export interface ClassificationResult {
   tokensUsed: number;
   needsReview: boolean;
   rawResponse?: string;
+  // AI-generated professional summaries (Phase 12.2b)
+  smartSummary?: string;
+  fullAnalysis?: {
+    overview?: string;
+    keyFindings?: string[];
+    discoveryRelevance?: string[];
+    partiesMentioned?: Array<{ name: string; role: string }>;
+    datesCovered?: { start?: string; end?: string };
+    financialSummary?: {
+      totalAmounts?: number[];
+      largestTransaction?: { amount: number; description: string };
+      recurringPayments?: string[];
+    };
+    legalSignificance?: string;
+    aiReasoning?: string;
+  };
 }
 
 export interface ChatSession {
@@ -234,10 +250,10 @@ function getClassificationPrompt(documentText: string, fileName?: string): strin
 
   // If no document text, use filename-based classification
   const contentSection = documentText.length > 10
-    ? `DOCUMENT TEXT:\n${documentText.substring(0, 4000)} ${documentText.length > 4000 ? '... [truncated]' : ''}`
+    ? `DOCUMENT TEXT:\n${documentText.substring(0, 8000)} ${documentText.length > 8000 ? '... [truncated]' : ''}`
     : `FILENAME: ${fileName || 'unknown'}\n\nNote: Document text could not be extracted. Please classify based on the filename.`;
 
-  return `You are a legal document classifier for family law cases. Analyze the following document and classify it.
+  return `You are a legal document analyst for family law cases. Analyze the following document, classify it, and provide professional summaries.
 
 DOCUMENT CATEGORIES AND SUBTYPES:
 ${categories}
@@ -252,14 +268,37 @@ Respond with a JSON object containing:
   "metadata": {
     "startDate": "YYYY-MM-DD if applicable",
     "endDate": "YYYY-MM-DD if applicable",
-    "parties": ["List of parties mentioned"],
+    "parties": ["Full names of parties mentioned, e.g. 'John Smith', 'Jane Doe'"],
     "amounts": [list of monetary amounts as numbers],
     "accountNumbers": ["last 4 digits only"],
-    "summary": "Brief 1-2 sentence summary of the document"
+    "summary": "Brief 1-2 sentence summary"
+  },
+  "smartSummary": "A professional 2-3 sentence summary written for an attorney. Focus on what this document IS, what key information it contains, and its relevance to family law proceedings. Use clear, professional legal language. Example: 'Bank statement from Chase covering January-March 2024, showing account ending in 4521. Documents monthly deposits averaging $4,200 and identifies recurring payments to ABC Mortgage ($1,850/mo) and XYZ Daycare ($800/mo).'",
+  "fullAnalysis": {
+    "overview": "Detailed paragraph explaining what this document is and its context",
+    "keyFindings": ["Bullet point findings relevant to the case", "Each finding should be specific and actionable"],
+    "discoveryRelevance": ["How this document could be used in discovery", "What requests it might satisfy"],
+    "partiesMentioned": [{"name": "Full Name", "role": "Role in document (e.g., account holder, employer, petitioner)"}],
+    "datesCovered": {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"},
+    "financialSummary": {
+      "totalAmounts": [total values found],
+      "largestTransaction": {"amount": 0, "description": "Description of largest transaction"},
+      "recurringPayments": ["List of recurring payments identified"]
+    },
+    "legalSignificance": "Why this document matters for family law proceedings",
+    "aiReasoning": "Brief explanation of how the classification was determined"
   }
 }
 
-Only respond with valid JSON. Be conservative with confidence scores (use lower scores when classifying from filename only).`;
+IMPORTANT GUIDELINES:
+- Write smartSummary as if presenting to a senior attorney - professional, concise, informative
+- Only include fullAnalysis fields that are relevant to the document type
+- For financial documents, always populate financialSummary
+- For legal documents, focus on parties and legal significance
+- Use proper names, not generic terms like "Party A" or "the person"
+- If information cannot be determined, omit the field rather than guessing
+
+Only respond with valid JSON.`;
 }
 
 /**
@@ -398,6 +437,8 @@ export async function classifyDocument(
       tokensUsed,
       needsReview,
       rawResponse: content,
+      smartSummary: parsed.smartSummary,
+      fullAnalysis: parsed.fullAnalysis,
     };
   } catch (error: any) {
     console.error('Classification error:', error);
@@ -480,6 +521,9 @@ export async function updateDocumentClassification(
       metadata: classification.metadata,
       needsReview: classification.needsReview,
       classificationHistory: [historyEntry],
+      // AI-generated summaries (Phase 12.2b)
+      smartSummary: classification.smartSummary,
+      fullAnalysis: classification.fullAnalysis,
     })
     .where(eq(documentsTable.id, documentId));
 }
