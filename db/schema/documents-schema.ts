@@ -48,23 +48,6 @@ export const documentsTable = pgTable("documents", {
     [key: string]: any;
   }>(),
 
-  // AI-generated professional summaries (Phase 12.2b)
-  smartSummary: text("smart_summary"), // 2-3 sentence professional summary for cards
-  fullAnalysis: jsonb("full_analysis").$type<{
-    overview?: string;
-    keyFindings?: string[];
-    discoveryRelevance?: string[];
-    partiesMentioned?: Array<{ name: string; role: string }>;
-    datesCovered?: { start?: string; end?: string };
-    financialSummary?: {
-      totalAmounts?: number[];
-      largestTransaction?: { amount: number; description: string };
-      recurringPayments?: string[];
-    };
-    legalSignificance?: string;
-    aiReasoning?: string;
-  }>(),
-
   // Classification history (for audit trail)
   classificationHistory: jsonb("classification_history").$type<Array<{
     timestamp: string;
