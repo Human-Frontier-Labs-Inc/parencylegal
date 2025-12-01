@@ -8,6 +8,16 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Webpack configuration for PDF.js compatibility in serverless
+  webpack: (config, { isServer }) => {
+    // Ignore canvas module (native dependency not available in serverless)
+    config.resolve.alias.canvas = false;
+
+    // Also ignore encoding module (optional dependency)
+    config.resolve.alias.encoding = false;
+
+    return config;
+  },
 };
 
 export default nextConfig;
