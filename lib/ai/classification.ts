@@ -86,13 +86,17 @@ export async function extractTextFromPDF(fileBuffer: Buffer): Promise<ExtractedT
 }
 
 /**
- * Extract text from an image using OCR
- * Note: For production, integrate with Tesseract.js or cloud OCR service
+ * Extract text from an image using Tesseract OCR
  */
 export async function extractTextFromImage(fileBuffer: Buffer): Promise<string> {
-  // Placeholder - in production, use Tesseract.js or Google Cloud Vision
-  console.warn('OCR not implemented - returning placeholder');
-  return 'OCR text extraction not yet implemented';
+  try {
+    const { ocrImage } = await import('./ocr');
+    const result = await ocrImage(fileBuffer);
+    return result.text;
+  } catch (error) {
+    console.error('[Classification] OCR failed:', error);
+    return '';
+  }
 }
 
 /**
@@ -279,12 +283,28 @@ export async function classifyAndStore(
   try {
     extractedText = await extractText(fileBuffer, mimeType);
 
-    // If scanned, try OCR
-    if (extractedText.isScanned && extractedText.wordCount < 50) {
-      const ocrText = await extractTextFromImage(fileBuffer);
-      if (ocrText.length > extractedText.text.length) {
-        extractedText.text = ocrText;
-        extractionMethod = 'ocr';
+    // If scanned PDF (very little text extracted), try OCR
+    if (mimeType === 'application/pdf' && extractedText.wordCount < 100) {
+      console.log(`[Classification] Low word count (${extractedText.wordCount}), trying OCR on PDF...`);
+
+      try {
+        const { ocrPDF, isProbablyScanned } = await import('./ocr');
+
+        // Double-check if it's likely scanned
+        if (isProbablyScanned(extractedText.text.length, fileBuffer.length, extractedText.pages)) {
+          console.log('[Classification] PDF appears to be scanned, running OCR...');
+          const ocrResult = await ocrPDF(fileBuffer);
+
+          if (ocrResult.text.length > extractedText.text.length) {
+            console.log(`[Classification] OCR extracted ${ocrResult.text.length} chars (was ${extractedText.text.length})`);
+            extractedText.text = ocrResult.text;
+            extractedText.wordCount = ocrResult.text.split(/\s+/).filter(w => w.length > 0).length;
+            extractedText.isScanned = true;
+            extractionMethod = 'ocr';
+          }
+        }
+      } catch (ocrError) {
+        console.error('[Classification] OCR fallback failed:', ocrError);
       }
     }
   } catch (error) {
