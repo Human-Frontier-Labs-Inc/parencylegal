@@ -169,6 +169,8 @@ export default function CaseDetailPage() {
   const [addingRfp, setAddingRfp] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [selectedRfp, setSelectedRfp] = useState<DiscoveryRequest | null>(null);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessingDocId, setReprocessingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCaseData();
@@ -338,6 +340,66 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleReprocessAll = async () => {
+    if (!confirm(`Reprocess all ${documents.length} documents? This will re-run OCR and classification on all documents.`)) {
+      return;
+    }
+
+    setReprocessing(true);
+    try {
+      const response = await fetch(`/api/cases/${caseId}/documents/reprocess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reprocessAll: true }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Reprocess failed: ${error.error || 'Unknown error'}`);
+        return;
+      }
+
+      const data = await response.json();
+      alert(`Reprocessed ${data.successful} of ${data.total} documents successfully.`);
+      await fetchDocuments();
+      await fetchProcessingStatus();
+    } catch (error) {
+      console.error("Reprocess failed:", error);
+      alert("Reprocess failed. Check the console for details.");
+    } finally {
+      setReprocessing(false);
+    }
+  };
+
+  const handleReprocessDocument = async (documentId: string) => {
+    setReprocessingDocId(documentId);
+    try {
+      const response = await fetch(`/api/cases/${caseId}/documents/reprocess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Reprocess failed: ${error.error || 'Unknown error'}`);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.results[0]?.success) {
+        await fetchDocuments();
+      } else {
+        alert(`Reprocess failed: ${data.results[0]?.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Reprocess failed:", error);
+      alert("Reprocess failed. Check the console for details.");
+    } finally {
+      setReprocessingDocId(null);
+    }
+  };
+
   const handleDeleteRfp = async (requestId: string) => {
     try {
       // Using new Phase 8 API endpoint
@@ -437,7 +499,7 @@ export default function CaseDetailPage() {
           {documents.length > 0 && stats.classified < stats.total && (
             <Button
               onClick={handleAnalyze}
-              disabled={analyzing || processingStatus?.isProcessing}
+              disabled={analyzing || processingStatus?.isProcessing || reprocessing}
             >
               {analyzing || processingStatus?.isProcessing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -447,6 +509,20 @@ export default function CaseDetailPage() {
               {processingStatus?.isProcessing
                 ? `Analyzing (${processingStatus.queue.completed}/${processingStatus.queue.total})`
                 : "Analyze Documents"}
+            </Button>
+          )}
+          {documents.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleReprocessAll}
+              disabled={reprocessing || analyzing || processingStatus?.isProcessing}
+            >
+              {reprocessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              {reprocessing ? "Reprocessing..." : "Reprocess All"}
             </Button>
           )}
           {caseData.dropboxFolderPath && (
@@ -707,14 +783,29 @@ export default function CaseDetailPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link
-                            href={`/dashboard/cases/${caseId}/documents/${doc.id}`}
-                          >
-                            <Button variant="ghost" size="sm">
-                              <Eye className="mr-1 h-4 w-4" />
-                              Review
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleReprocessDocument(doc.id)}
+                              disabled={reprocessingDocId === doc.id}
+                              title="Reprocess with OCR"
+                            >
+                              {reprocessingDocId === doc.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4" />
+                              )}
                             </Button>
-                          </Link>
+                            <Link
+                              href={`/dashboard/cases/${caseId}/documents/${doc.id}`}
+                            >
+                              <Button variant="ghost" size="sm">
+                                <Eye className="mr-1 h-4 w-4" />
+                                Review
+                              </Button>
+                            </Link>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
