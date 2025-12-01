@@ -146,6 +146,68 @@ const REVIEW_STATUS_COLORS: Record<string, string> = {
   reviewed: "bg-green-100 text-green-800",
 };
 
+/**
+ * Clean up AI-generated summary text by removing OCR artifacts
+ */
+function cleanSummaryText(summary: string): string {
+  if (!summary) return "";
+
+  return summary
+    // Remove multiple underscores (form field placeholders)
+    .replace(/_{2,}/g, "")
+    // Remove lines that are just underscores or whitespace
+    .replace(/^\s*_+\s*$/gm, "")
+    // Clean up multiple spaces
+    .replace(/\s{2,}/g, " ")
+    // Clean up multiple newlines
+    .replace(/\n{3,}/g, "\n\n")
+    // Trim
+    .trim();
+}
+
+/**
+ * Filter out garbage/OCR artifacts from party names
+ * Only returns names that look like actual person or entity names
+ */
+function getValidParties(parties: string[]): string[] {
+  if (!parties || !Array.isArray(parties)) return [];
+
+  // Words that indicate OCR artifacts or form labels, not real names
+  const invalidPatterns = [
+    /^(who|the|a|an|is|are|was|were|be|been|being)$/i,
+    /^(only|will|have|has|had|do|does|did|can|could|shall|should)$/i,
+    /^(numbered|years?|person|employed|parenting)$/i,
+    /^[a-z]$/i, // Single letters
+    /^\d+$/, // Just numbers
+    /^[_\-\s]+$/, // Just underscores, dashes, or spaces
+    /_{2,}/, // Contains multiple underscores
+    /^(mr|mrs|ms|dr|jr|sr|ii|iii|iv)\.?$/i, // Just titles
+  ];
+
+  return parties.filter((party) => {
+    if (!party || typeof party !== "string") return false;
+
+    const cleaned = party.trim();
+
+    // Must be at least 2 characters
+    if (cleaned.length < 2) return false;
+
+    // Must not match invalid patterns
+    for (const pattern of invalidPatterns) {
+      if (pattern.test(cleaned)) return false;
+    }
+
+    // Should have at least one capital letter (proper noun) or be all caps (org name)
+    if (!/[A-Z]/.test(cleaned) && cleaned !== cleaned.toUpperCase()) return false;
+
+    // Should not be mostly numbers or symbols
+    const letterCount = (cleaned.match(/[a-zA-Z]/g) || []).length;
+    if (letterCount < cleaned.length * 0.5) return false;
+
+    return true;
+  });
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -1195,64 +1257,108 @@ export default function CaseDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Document Summary Dialog */}
+      {/* Document Summary Dialog - Professional Version */}
       <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {selectedDocument?.fileName}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedDocument?.category && (
-                <Badge className="mr-2">{selectedDocument.category}</Badge>
-              )}
-              {selectedDocument?.subtype && (
-                <Badge variant="outline">{selectedDocument.subtype}</Badge>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <h4 className="font-medium mb-2">AI Summary</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {selectedDocument?.metadata?.summary || "No summary available"}
-              </p>
+          <DialogHeader className="pb-4 border-b">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg font-semibold truncate pr-4">
+                  {selectedDocument?.fileName}
+                </DialogTitle>
+                <div className="flex items-center gap-2 mt-2">
+                  {selectedDocument?.category && (
+                    <Badge>{selectedDocument.category}</Badge>
+                  )}
+                  {selectedDocument?.subtype && (
+                    <Badge variant="outline">{selectedDocument.subtype}</Badge>
+                  )}
+                  {selectedDocument?.confidence !== null && (
+                    <span className="text-sm text-muted-foreground">
+                      {selectedDocument.confidence}% confidence
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            {selectedDocument?.metadata?.parties && selectedDocument.metadata.parties.length > 0 && (
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            {/* Summary Section */}
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Summary
+              </h4>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm leading-relaxed">
+                  {selectedDocument?.metadata?.summary
+                    ? cleanSummaryText(selectedDocument.metadata.summary)
+                    : selectedDocument?.category
+                    ? `This document has been classified as a ${selectedDocument.subtype || selectedDocument.category}.`
+                    : "No summary available. Click 'View Full Document' to see the document details."}
+                </p>
+              </div>
+            </div>
+
+            {/* Key Details Grid */}
+            {(selectedDocument?.metadata?.startDate ||
+              selectedDocument?.metadata?.endDate ||
+              (selectedDocument?.metadata?.amounts && selectedDocument.metadata.amounts.length > 0)) && (
               <div>
-                <h4 className="font-medium mb-2">Parties Mentioned</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedDocument.metadata.parties.map((party, i) => (
-                    <Badge key={i} variant="secondary">{party}</Badge>
-                  ))}
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Key Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {(selectedDocument?.metadata?.startDate || selectedDocument?.metadata?.endDate) && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Date Range</p>
+                      <p className="text-sm font-medium">
+                        {selectedDocument.metadata.startDate || "N/A"} — {selectedDocument.metadata.endDate || "N/A"}
+                      </p>
+                    </div>
+                  )}
+                  {selectedDocument?.metadata?.amounts && selectedDocument.metadata.amounts.length > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Amounts</p>
+                      <p className="text-sm font-medium">
+                        {selectedDocument.metadata.amounts
+                          .filter(a => typeof a === 'number' && a > 0)
+                          .slice(0, 3)
+                          .map(a => `$${a.toLocaleString()}`)
+                          .join(", ")}
+                        {selectedDocument.metadata.amounts.filter(a => typeof a === 'number' && a > 0).length > 3 && "..."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-            {selectedDocument?.metadata?.amounts && selectedDocument.metadata.amounts.length > 0 && (
+
+            {/* Parties - Only show if we have valid party names */}
+            {selectedDocument?.metadata?.parties &&
+             getValidParties(selectedDocument.metadata.parties).length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">Amounts Found</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Parties Mentioned
+                </h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedDocument.metadata.amounts.map((amount, i) => (
-                    <Badge key={i} variant="outline">
-                      ${amount.toLocaleString()}
+                  {getValidParties(selectedDocument.metadata.parties).map((party, i) => (
+                    <Badge key={i} variant="secondary" className="font-normal">
+                      {party}
                     </Badge>
                   ))}
                 </div>
               </div>
             )}
-            {(selectedDocument?.metadata?.startDate || selectedDocument?.metadata?.endDate) && (
-              <div>
-                <h4 className="font-medium mb-2">Date Range</h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedDocument.metadata.startDate && `From: ${selectedDocument.metadata.startDate}`}
-                  {selectedDocument.metadata.startDate && selectedDocument.metadata.endDate && " — "}
-                  {selectedDocument.metadata.endDate && `To: ${selectedDocument.metadata.endDate}`}
-                </p>
-              </div>
-            )}
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="border-t pt-4">
+            <Button variant="outline" onClick={() => setSelectedDocument(null)}>
+              Close
+            </Button>
             <Link href={`/dashboard/cases/${caseId}/documents/${selectedDocument?.id}`}>
               <Button>
                 <Eye className="mr-2 h-4 w-4" />
