@@ -668,17 +668,22 @@ export default function CaseDetailPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Needs Review</p>
-                <p className="text-2xl font-bold">{stats.needsReview}</p>
+        <Link href={`/dashboard/cases/${caseId}/review`}>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Needs Review</p>
+                  <p className="text-2xl font-bold">{stats.needsReview}</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-yellow-500" />
               </div>
-              <AlertCircle className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
+              {stats.needsReview > 0 && (
+                <p className="text-xs text-primary mt-2">Click to review →</p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
