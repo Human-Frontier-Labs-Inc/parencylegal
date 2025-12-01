@@ -117,10 +117,15 @@ export async function POST(
     let sources: ChatSource[] = [];
     let contextTokensUsed = 0;
 
+    // Pre-detect intent to determine how many chunks to retrieve
+    const preIntent = detectIntent(message);
+    // For analysis tasks (comparing docs, finding discrepancies), get more chunks
+    const chunkLimit = preIntent.type === "analyze" ? 15 : 5;
+
     if (includeContext) {
       try {
         // Lower similarity threshold to 0.3 to be more permissive in finding relevant content
-        const searchResult = await semanticSearch(caseId, message, 5, 0.3);
+        const searchResult = await semanticSearch(caseId, message, chunkLimit, 0.3);
         contextTokensUsed = searchResult.tokensUsed || 0;
 
         // Safely handle chunks - may be undefined or empty
@@ -131,7 +136,8 @@ export async function POST(
             documentId: chunk.documentId,
             documentName: docMap[chunk.documentId] || "Unknown",
             chunkId: chunk.chunkId,
-            excerpt: chunk.content.substring(0, 200) + (chunk.content.length > 200 ? "..." : ""),
+            // Store full content for AI context, but truncate for UI display
+            excerpt: chunk.content,
             similarity: chunk.similarity,
           }));
         }
@@ -149,8 +155,8 @@ export async function POST(
       return acc;
     }, {} as Record<string, string[]>);
 
-    // Phase 11: Detect intent to route to appropriate handler
-    const intent = detectIntent(message);
+    // Phase 11: Use pre-detected intent for routing
+    const intent = preIntent;
     console.log(`[Chat] Detected intent: ${intent.type}${intent.subtype ? ` (${intent.subtype})` : ""} - confidence: ${intent.confidence}`);
 
     // Build system prompt based on intent
