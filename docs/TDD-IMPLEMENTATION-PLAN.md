@@ -491,32 +491,93 @@ describe('Semantic Search', () => {
 
 ---
 
-## 🚀 PHASE 11: Advanced Legal Assistant
-**Goal:** Drafting and deep analysis capabilities
+## 🚀 PHASE 11: Advanced Legal Assistant (Unified Chat)
+**Goal:** Drafting, deep analysis, and legal research - all integrated into existing chat interface
+
+**Design Decision:** Instead of separate pages, all advanced features are accessible via the existing AI Chat interface. Users can make all AI queries in one unified location.
+
+### 11.0 Intent Detection Foundation (TDD)
+- [ ] Intent detection from natural language (`lib/ai/intent-detection.ts`)
+- [ ] Classify: draft, analyze, research, or general query
+- [ ] Extract parameters (topic, documents, state for research)
+- [ ] Route to appropriate handler
+
+**Tests:** `tests/chat/intent-detection.test.ts`
 
 ### 11.1 Document Drafting (TDD)
-- [ ] Discovery request generation
-- [ ] Timeline narrative generation
-- [ ] Summary generation
-- [ ] Export conversations as case notes
+- [ ] Discovery request generation (interrogatories, RFPs)
+- [ ] Timeline narrative generation from case documents
+- [ ] Case summary generation
+- [ ] Export chat conversations as case notes
+- [ ] Copy/download buttons for drafted content
+
+**User Commands (in chat):**
+- "Draft a discovery request for bank statements"
+- "Generate interrogatories about income"
+- "Create a timeline narrative"
+- "Summarize this case"
+
+**Files:**
+- `lib/ai/legal-drafting.ts` - Drafting templates and prompts
+- `tests/chat/legal-drafting.test.ts` - TDD tests
 
 ### 11.2 Deep Analysis (TDD)
 - [ ] Multi-document comparison
-- [ ] Discrepancy detection
+- [ ] Discrepancy detection (income, assets, dates)
 - [ ] Asset tracking across documents
-- [ ] Income verification
+- [ ] Income verification from multiple sources
+- [ ] Structured output (tables, comparisons)
+
+**User Commands (in chat):**
+- "Compare these documents: [doc1], [doc2]"
+- "Find discrepancies in the financial records"
+- "Track assets across all documents"
+- "Verify income from all sources"
+
+**Files:**
+- `lib/ai/deep-analysis.ts` - Analysis prompts and logic
+- `tests/chat/deep-analysis.test.ts` - TDD tests
 
 ### 11.3 Legal Research (TDD)
-- [ ] Web search integration
+- [ ] Web search integration for legal questions
 - [ ] State-specific statute lookups
-- [ ] Citation formatting
-- [ ] Research history
+- [ ] Citation formatting (Bluebook style)
+- [ ] Research history (stored in chat)
+- [ ] Source links in responses
+
+**User Commands (in chat):**
+- "Research community property laws in Texas"
+- "Find statutes about child custody in California"
+- "What is the law on asset division?"
+
+**Files:**
+- `lib/ai/legal-research.ts` - Research prompts and web search
+- `tests/chat/legal-research.test.ts` - TDD tests
+
+### 11.4 Chat UI Enhancements
+- [ ] Mode indicator badges (Draft/Analyze/Research)
+- [ ] Structured output rendering (markdown, tables)
+- [ ] Copy/download buttons for drafts
+- [ ] Updated suggested questions for new capabilities
+
+**Files Modified:**
+- `app/api/cases/[id]/chat/route.ts` - Add intent detection and handlers
+- `components/chat/case-chat.tsx` - Add mode indicators, structured output
 
 ### 📦 PHASE 11 DELIVERABLES
-- ⬜ Drafting capabilities
-- ⬜ Deep analysis features
-- ⬜ Legal research tools
-- ⬜ All advanced tests passing
+- ⬜ Intent detection working (>90% accuracy)
+- ⬜ Drafting capabilities in chat
+- ⬜ Deep analysis features in chat
+- ⬜ Legal research with web sources
+- ⬜ All features in unified chat interface
+- ⬜ All TDD tests passing
+
+**Acceptance Criteria:**
+- ⬜ User can draft discovery requests via chat
+- ⬜ User can detect discrepancies via chat
+- ⬜ User can conduct legal research via chat
+- ⬜ No separate pages needed - everything in one chat
+- ⬜ Draft quality rating >4/5
 
 ---
 
