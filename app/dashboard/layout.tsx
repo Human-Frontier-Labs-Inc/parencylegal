@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import CancellationPopup from "@/components/cancellation-popup";
 import WelcomeMessagePopup from "@/components/welcome-message-popup";
 import PaymentSuccessPopup from "@/components/payment-success-popup";
+import OnboardingWrapper from "@/components/onboarding/onboarding-wrapper";
 import { ensureProfile } from "@/lib/auth/ensure-profile";
 
 /**
@@ -105,7 +106,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       
       {/* Show payment success popup - component handles visibility logic */}
       <PaymentSuccessPopup profile={profile} />
-      
+
+      {/* Onboarding wizard for new users */}
+      <OnboardingWrapper userId={userId} />
+
       {/* Show cancellation popup directly if status is canceled */}
       {profile.status === "canceled" && (
         <CancellationPopup profile={profile} />
