@@ -39,6 +39,8 @@ import {
   Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import VisualTimeline from "@/components/timeline/visual-timeline";
 
 interface TimelineEvent {
   id: string;
@@ -362,130 +364,156 @@ export default function TimelinePage() {
         </CardContent>
       </Card>
 
-      {/* Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Timeline</CardTitle>
-          <CardDescription>
-            {data?.totalEvents || 0} document{(data?.totalEvents || 0) !== 1 ? "s" : ""} arranged
-            chronologically
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {Object.keys(groupedEvents).length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No documents found</h3>
-              <p className="text-muted-foreground">
-                {selectedCategories.length > 0 || startDate || endDate
-                  ? "Try adjusting your filters"
-                  : "Documents with dates will appear here"}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(groupedEvents)
-                .sort(([a], [b]) => {
-                  if (a === "No Date") return 1;
-                  if (b === "No Date") return -1;
-                  return b.localeCompare(a);
-                })
-                .map(([monthKey, events]) => (
-                  <div key={monthKey} className="border rounded-lg">
-                    <button
-                      onClick={() => toggleMonth(monthKey)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {expandedMonths.has(monthKey) ? (
-                          <ChevronDown className="h-5 w-5" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5" />
-                        )}
-                        <span className="font-semibold">{formatMonthKey(monthKey)}</span>
-                      </div>
-                      <Badge variant="secondary">{events.length} document{events.length !== 1 ? "s" : ""}</Badge>
-                    </button>
+      {/* Timeline Views */}
+      <Tabs defaultValue="visual" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="visual">Visual Timeline</TabsTrigger>
+          <TabsTrigger value="list">List View</TabsTrigger>
+        </TabsList>
 
-                    {expandedMonths.has(monthKey) && (
-                      <div className="border-t">
-                        {events.map((event, idx) => (
-                          <Link
-                            key={event.id}
-                            href={`/dashboard/cases/${caseId}/documents/${event.documentId}`}
-                          >
-                            <div
-                              className={`flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors ${
-                                idx < events.length - 1 ? "border-b" : ""
-                              }`}
-                            >
-                              {/* Date */}
-                              <div className="w-24 text-sm text-muted-foreground">
-                                {event.date ? (
-                                  <span>
-                                    {new Date(event.date).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                ) : (
-                                  <span className="italic">No date</span>
-                                )}
-                              </div>
+        {/* Visual Timeline */}
+        <TabsContent value="visual">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Timeline</CardTitle>
+              <CardDescription>
+                {data?.totalEvents || 0} document{(data?.totalEvents || 0) !== 1 ? "s" : ""} arranged
+                chronologically
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VisualTimeline events={data?.events || []} caseId={caseId} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                              {/* Timeline dot */}
-                              <div className="relative">
+        {/* List View */}
+        <TabsContent value="list">
+          <Card>
+            <CardHeader>
+              <CardTitle>Timeline List</CardTitle>
+              <CardDescription>
+                {data?.totalEvents || 0} document{(data?.totalEvents || 0) !== 1 ? "s" : ""} arranged
+                chronologically
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(groupedEvents).length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No documents found</h3>
+                  <p className="text-muted-foreground">
+                    {selectedCategories.length > 0 || startDate || endDate
+                      ? "Try adjusting your filters"
+                      : "Documents with dates will appear here"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(groupedEvents)
+                    .sort(([a], [b]) => {
+                      if (a === "No Date") return 1;
+                      if (b === "No Date") return -1;
+                      return b.localeCompare(a);
+                    })
+                    .map(([monthKey, events]) => (
+                      <div key={monthKey} className="border rounded-lg">
+                        <button
+                          onClick={() => toggleMonth(monthKey)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {expandedMonths.has(monthKey) ? (
+                              <ChevronDown className="h-5 w-5" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5" />
+                            )}
+                            <span className="font-semibold">{formatMonthKey(monthKey)}</span>
+                          </div>
+                          <Badge variant="secondary">{events.length} document{events.length !== 1 ? "s" : ""}</Badge>
+                        </button>
+
+                        {expandedMonths.has(monthKey) && (
+                          <div className="border-t">
+                            {events.map((event, idx) => (
+                              <Link
+                                key={event.id}
+                                href={`/dashboard/cases/${caseId}/documents/${event.documentId}`}
+                              >
                                 <div
-                                  className={`w-3 h-3 rounded-full border-2 ${
-                                    CATEGORY_COLORS[event.category || "Uncategorized"]
-                                      ?.replace("bg-", "border-")
-                                      .split(" ")[0] || "border-gray-300"
-                                  } bg-white`}
-                                />
-                              </div>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  <span className="font-medium truncate">
-                                    {event.fileName}
-                                  </span>
-                                </div>
-                                {event.metadata?.summary && (
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                                    {event.metadata.summary}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Category badge */}
-                              {event.category && (
-                                <Badge
-                                  variant="outline"
-                                  className={CATEGORY_COLORS[event.category] || CATEGORY_COLORS.Uncategorized}
+                                  className={`flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors ${
+                                    idx < events.length - 1 ? "border-b" : ""
+                                  }`}
                                 >
-                                  {event.category}
-                                </Badge>
-                              )}
+                                  {/* Date */}
+                                  <div className="w-24 text-sm text-muted-foreground">
+                                    {event.date ? (
+                                      <span>
+                                        {new Date(event.date).toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                        })}
+                                      </span>
+                                    ) : (
+                                      <span className="italic">No date</span>
+                                    )}
+                                  </div>
 
-                              {/* Date type indicator */}
-                              {event.dateType !== "document" && (
-                                <span className="text-xs text-muted-foreground">
-                                  ({event.dateType})
-                                </span>
-                              )}
-                            </div>
-                          </Link>
-                        ))}
+                                  {/* Timeline dot */}
+                                  <div className="relative">
+                                    <div
+                                      className={`w-3 h-3 rounded-full border-2 ${
+                                        CATEGORY_COLORS[event.category || "Uncategorized"]
+                                          ?.replace("bg-", "border-")
+                                          .split(" ")[0] || "border-gray-300"
+                                      } bg-white`}
+                                    />
+                                  </div>
+
+                                  {/* Content */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <span className="font-medium truncate">
+                                        {event.fileName}
+                                      </span>
+                                    </div>
+                                    {event.metadata?.summary && (
+                                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                                        {event.metadata.summary}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Category badge */}
+                                  {event.category && (
+                                    <Badge
+                                      variant="outline"
+                                      className={CATEGORY_COLORS[event.category] || CATEGORY_COLORS.Uncategorized}
+                                    >
+                                      {event.category}
+                                    </Badge>
+                                  )}
+
+                                  {/* Date type indicator */}
+                                  {event.dateType !== "document" && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({event.dateType})
+                                    </span>
+                                  )}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }
