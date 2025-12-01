@@ -1,12 +1,13 @@
 /**
- * OCR Service using Tesseract.js
- * Extracts text from images
+ * OCR Service
+ * Extracts text from images using OpenAI Vision API
  *
- * Note: For scanned PDFs, we use OpenAI's vision API which is more reliable
- * in serverless environments than pdf-to-image conversion + Tesseract
+ * For images (PNG, JPG, etc.): Uses Vision API directly
+ * For scanned PDFs: Currently not supported in serverless (requires native deps)
+ *
+ * Future enhancement: Add Google Cloud Vision or AWS Textract for PDF OCR
  */
 
-import Tesseract from 'tesseract.js';
 import OpenAI from 'openai';
 
 export interface OCRResult {
@@ -17,77 +18,51 @@ export interface OCRResult {
 }
 
 /**
- * Extract text from an image buffer using Tesseract OCR
+ * Extract text from an image buffer using OpenAI Vision API
  */
 export async function ocrImage(imageBuffer: Buffer): Promise<OCRResult> {
   const startTime = Date.now();
 
   try {
-    console.log('[OCR] Starting Tesseract OCR on image...');
-
-    const result = await Tesseract.recognize(imageBuffer, 'eng', {
-      logger: (m) => {
-        if (m.status === 'recognizing text') {
-          console.log(`[OCR] Progress: ${Math.round(m.progress * 100)}%`);
-        }
-      },
-    });
-
-    const text = result.data.text;
-    const confidence = result.data.confidence;
-
-    console.log(
-      `[OCR] Completed. Extracted ${text.length} chars, confidence: ${confidence}%`
-    );
-
-    return {
-      text,
-      confidence,
-      pages: 1,
-      processingTimeMs: Date.now() - startTime,
-    };
-  } catch (error) {
-    console.error('[OCR] Tesseract error:', error);
-    return {
-      text: '',
-      confidence: 0,
-      pages: 0,
-      processingTimeMs: Date.now() - startTime,
-    };
-  }
-}
-
-/**
- * Extract text from a scanned PDF using OpenAI's vision API
- * This is more reliable in serverless environments than local PDF-to-image conversion
- */
-export async function ocrPDF(pdfBuffer: Buffer): Promise<OCRResult> {
-  const startTime = Date.now();
-
-  try {
-    console.log('[OCR] Using OpenAI Vision API for scanned PDF...');
+    console.log('[OCR] Using OpenAI Vision API for image...');
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Convert PDF buffer to base64
-    const base64Pdf = pdfBuffer.toString('base64');
+    // Detect image type from buffer magic bytes
+    let mimeType = 'image/png';
+    if (imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8) {
+      mimeType = 'image/jpeg';
+    } else if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50) {
+      mimeType = 'image/png';
+    } else if (imageBuffer[0] === 0x47 && imageBuffer[1] === 0x49) {
+      mimeType = 'image/gif';
+    } else if (imageBuffer[0] === 0x52 && imageBuffer[1] === 0x49) {
+      mimeType = 'image/webp';
+    }
 
-    // Use GPT-4 Vision to extract text from the PDF
-    // Note: GPT-4V can directly read PDFs as of late 2024
+    const base64Image = imageBuffer.toString('base64');
+
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // gpt-4o-mini supports vision
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `This is a scanned document. Please extract ALL text from this document exactly as it appears, preserving the structure as much as possible. Include all numbers, dates, names, and details. Format tables as markdown tables if present. Do not summarize - extract the complete text.`,
+              text: `Extract ALL text from this document image exactly as it appears.
+
+Instructions:
+- Include ALL numbers, dates, names, amounts, and details
+- Preserve the structure and layout
+- Format tables as markdown tables if present
+- Include headers, footers, and any fine print
+- Do not summarize - extract the complete text verbatim`,
             },
             {
               type: 'image_url',
               image_url: {
-                url: `data:application/pdf;base64,${base64Pdf}`,
+                url: `data:${mimeType};base64,${base64Image}`,
               },
             },
           ],
@@ -98,19 +73,16 @@ export async function ocrPDF(pdfBuffer: Buffer): Promise<OCRResult> {
 
     const text = response.choices[0]?.message?.content || '';
 
-    console.log(`[OCR] Vision API extracted ${text.length} chars`);
+    console.log(`[OCR] Vision API extracted ${text.length} chars from image`);
 
     return {
       text,
-      confidence: 90, // Vision API is generally high confidence
-      pages: 1, // We process as single request
+      confidence: 90,
+      pages: 1,
       processingTimeMs: Date.now() - startTime,
     };
   } catch (error: any) {
-    console.error('[OCR] Vision API error:', error);
-
-    // If Vision API fails (e.g., PDF not supported), return empty
-    // The document will still be classified by filename
+    console.error('[OCR] Vision API error:', error.message || error);
     return {
       text: '',
       confidence: 0,
@@ -121,26 +93,43 @@ export async function ocrPDF(pdfBuffer: Buffer): Promise<OCRResult> {
 }
 
 /**
+ * Extract text from a scanned PDF
+ *
+ * NOTE: PDF-to-image conversion requires native dependencies (canvas, poppler)
+ * that don't work in Vercel's serverless environment.
+ *
+ * For now, scanned PDFs will be classified by filename.
+ * TODO: Add Google Cloud Vision or AWS Textract for PDF OCR
+ */
+export async function ocrPDF(_pdfBuffer: Buffer): Promise<OCRResult> {
+  const startTime = Date.now();
+
+  console.log('[OCR] Scanned PDF detected but PDF OCR not available in serverless.');
+  console.log('[OCR] Document will be classified by filename.');
+
+  return {
+    text: '',
+    confidence: 0,
+    pages: 0,
+    processingTimeMs: Date.now() - startTime,
+  };
+}
+
+/**
  * Detect if a PDF is scanned (image-based) vs text-based
- * by checking the ratio of extracted text to file size
  */
 export function isProbablyScanned(
   textLength: number,
   fileSizeBytes: number,
   pageCount: number
 ): boolean {
-  // Typical text PDFs have roughly 2000-4000 chars per page
-  // Scanned PDFs have almost no extractable text
   const expectedCharsPerPage = 2000;
-  const expectedMinChars = pageCount * expectedCharsPerPage * 0.1; // 10% threshold
+  const expectedMinChars = pageCount * expectedCharsPerPage * 0.1;
 
   if (textLength < expectedMinChars) {
     return true;
   }
 
-  // Also check text-to-size ratio
-  // Text PDFs typically have 10-50 bytes per character
-  // Scanned PDFs have many more bytes per character (images)
   const bytesPerChar = fileSizeBytes / Math.max(textLength, 1);
   if (bytesPerChar > 500) {
     return true;
