@@ -70,6 +70,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import MissingDocumentsEmail from "@/components/documents/missing-documents-email";
 
 interface Case {
   id: string;
@@ -619,6 +620,10 @@ export default function CaseDetailPage() {
               Settings
             </Button>
           </Link>
+          <MissingDocumentsEmail
+            caseName={caseData?.name || ""}
+            clientName={caseData?.clientName || "Client"}
+          />
         </div>
       </div>
 
