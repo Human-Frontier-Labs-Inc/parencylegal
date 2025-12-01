@@ -46,6 +46,9 @@ import {
   ClipboardList,
   CircleDot,
   TrendingUp,
+  Calendar,
+  Search,
+  Download,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
@@ -461,6 +464,24 @@ export default function CaseDetailPage() {
               Sync Dropbox
             </Button>
           )}
+          <Link href={`/dashboard/cases/${caseId}/timeline`}>
+            <Button variant="outline">
+              <Calendar className="mr-2 h-4 w-4" />
+              Timeline
+            </Button>
+          </Link>
+          <Link href={`/dashboard/cases/${caseId}/search`}>
+            <Button variant="outline">
+              <Search className="mr-2 h-4 w-4" />
+              Search
+            </Button>
+          </Link>
+          <Link href={`/dashboard/cases/${caseId}/export`}>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </Link>
           <Link href={`/dashboard/cases/${caseId}/settings`}>
             <Button variant="outline">
               <Settings className="mr-2 h-4 w-4" />
