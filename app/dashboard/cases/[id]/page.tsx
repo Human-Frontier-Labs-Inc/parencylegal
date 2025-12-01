@@ -48,6 +48,7 @@ import {
   TrendingUp,
   Calendar,
   Search,
+  Download,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
@@ -612,6 +613,12 @@ export default function CaseDetailPage() {
             <Button variant="outline">
               <Search className="mr-2 h-4 w-4" />
               Search
+            </Button>
+          </Link>
+          <Link href={`/dashboard/cases/${caseId}/export`}>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export
             </Button>
           </Link>
           <Link href={`/dashboard/cases/${caseId}/settings`}>
