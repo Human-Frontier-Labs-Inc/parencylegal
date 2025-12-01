@@ -1,31 +1,79 @@
 /**
  * OCR Service
- * Extracts text from images using OpenAI Vision API
+ * Extracts text from scanned documents using available OCR services
  *
- * For images (PNG, JPG, etc.): Uses Vision API directly
- * For scanned PDFs: Currently not supported in serverless (requires native deps)
+ * Priority:
+ * 1. Google Cloud Vision (if configured) - best for PDFs and images
+ * 2. OpenAI Vision API - fallback for images only
  *
- * Future enhancement: Add Google Cloud Vision or AWS Textract for PDF OCR
+ * For scanned PDFs, Google Cloud Vision is required as OpenAI Vision
+ * doesn't support PDF files directly.
  */
 
 import OpenAI from 'openai';
+import {
+  isVisionConfigured,
+  ocrPdfWithVision,
+  ocrImageWithVision,
+} from './google-vision';
 
 export interface OCRResult {
   text: string;
   confidence: number;
   pages: number;
   processingTimeMs: number;
+  provider?: 'google-vision' | 'openai-vision' | 'none';
 }
 
 /**
- * Extract text from an image buffer using OpenAI Vision API
+ * Extract text from an image buffer
+ * Uses Google Vision if configured, falls back to OpenAI Vision
  */
 export async function ocrImage(imageBuffer: Buffer): Promise<OCRResult> {
+  // Try Google Vision first (more accurate, supports more formats)
+  if (isVisionConfigured()) {
+    console.log('[OCR] Using Google Cloud Vision for image');
+    const result = await ocrImageWithVision(imageBuffer);
+    return { ...result, provider: 'google-vision' };
+  }
+
+  // Fall back to OpenAI Vision
+  console.log('[OCR] Using OpenAI Vision API for image');
+  return ocrImageWithOpenAI(imageBuffer);
+}
+
+/**
+ * Extract text from a scanned PDF
+ * Requires Google Cloud Vision (OpenAI Vision doesn't support PDFs)
+ */
+export async function ocrPDF(pdfBuffer: Buffer): Promise<OCRResult> {
+  if (isVisionConfigured()) {
+    console.log('[OCR] Using Google Cloud Vision for PDF');
+    const result = await ocrPdfWithVision(pdfBuffer);
+    return { ...result, provider: 'google-vision' };
+  }
+
+  // No PDF OCR available without Google Vision
+  console.log('[OCR] Google Cloud Vision not configured - PDF OCR unavailable');
+  console.log('[OCR] To enable PDF OCR, add GOOGLE_CLOUD_CREDENTIALS env var');
+
+  return {
+    text: '',
+    confidence: 0,
+    pages: 0,
+    processingTimeMs: 0,
+    provider: 'none',
+  };
+}
+
+/**
+ * Extract text from an image using OpenAI Vision API
+ * Fallback when Google Vision is not configured
+ */
+async function ocrImageWithOpenAI(imageBuffer: Buffer): Promise<OCRResult> {
   const startTime = Date.now();
 
   try {
-    console.log('[OCR] Using OpenAI Vision API for image...');
-
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // Detect image type from buffer magic bytes
@@ -73,46 +121,25 @@ Instructions:
 
     const text = response.choices[0]?.message?.content || '';
 
-    console.log(`[OCR] Vision API extracted ${text.length} chars from image`);
+    console.log(`[OCR] OpenAI Vision extracted ${text.length} chars`);
 
     return {
       text,
-      confidence: 90,
+      confidence: 85, // OpenAI doesn't provide confidence scores
       pages: 1,
       processingTimeMs: Date.now() - startTime,
+      provider: 'openai-vision',
     };
   } catch (error: any) {
-    console.error('[OCR] Vision API error:', error.message || error);
+    console.error('[OCR] OpenAI Vision error:', error.message || error);
     return {
       text: '',
       confidence: 0,
       pages: 0,
       processingTimeMs: Date.now() - startTime,
+      provider: 'openai-vision',
     };
   }
-}
-
-/**
- * Extract text from a scanned PDF
- *
- * NOTE: PDF-to-image conversion requires native dependencies (canvas, poppler)
- * that don't work in Vercel's serverless environment.
- *
- * For now, scanned PDFs will be classified by filename.
- * TODO: Add Google Cloud Vision or AWS Textract for PDF OCR
- */
-export async function ocrPDF(_pdfBuffer: Buffer): Promise<OCRResult> {
-  const startTime = Date.now();
-
-  console.log('[OCR] Scanned PDF detected but PDF OCR not available in serverless.');
-  console.log('[OCR] Document will be classified by filename.');
-
-  return {
-    text: '',
-    confidence: 0,
-    pages: 0,
-    processingTimeMs: Date.now() - startTime,
-  };
 }
 
 /**
@@ -136,4 +163,21 @@ export function isProbablyScanned(
   }
 
   return false;
+}
+
+/**
+ * Check which OCR providers are available
+ */
+export function getAvailableProviders(): string[] {
+  const providers: string[] = [];
+
+  if (isVisionConfigured()) {
+    providers.push('google-vision');
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    providers.push('openai-vision');
+  }
+
+  return providers;
 }
