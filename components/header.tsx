@@ -1,5 +1,5 @@
 /**
- * Header component for the Template App
+ * Header component for Parency Legal
  * Features a modern glassmorphism design with bento-style UI elements
  * Includes subtle 3D effects and glowing accents
  */
@@ -7,7 +7,7 @@
 
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-import { Home, LayoutDashboard, Menu, X } from "lucide-react";
+import { Home, LayoutDashboard, Menu, X, Scale } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -92,22 +92,10 @@ export default function Header() {
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
                 
-                <svg 
-                  viewBox="0 0 24 24" 
-                  className="w-6 h-6 text-primary relative z-10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M12 4v16" />
-                  <path d="M4 12h16" />
-                </svg>
+                <Scale className="w-5 h-5 text-primary relative z-10" />
               </div>
               <div className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Template App
+                Parency Legal
               </div>
             </motion.div>
 

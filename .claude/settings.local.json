@@ -48,7 +48,8 @@
       "WebFetch(domain:costgoat.com)",
       "Bash(npx tsc:*)",
       "Bash(vercel --prod --force)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(OPENAI_API_KEY=\"\" npm run test:run:*)"
     ],
     "deny": []
   },
