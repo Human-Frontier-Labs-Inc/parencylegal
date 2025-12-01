@@ -105,22 +105,6 @@ interface Document {
     endDate?: string;
     [key: string]: any;
   } | null;
-  // AI-generated professional summaries (Phase 12.2b)
-  smartSummary: string | null;
-  fullAnalysis: {
-    overview?: string;
-    keyFindings?: string[];
-    discoveryRelevance?: string[];
-    partiesMentioned?: Array<{ name: string; role: string }>;
-    datesCovered?: { start?: string; end?: string };
-    financialSummary?: {
-      totalAmounts?: number[];
-      largestTransaction?: { amount: number; description: string };
-      recurringPayments?: string[];
-    };
-    legalSignificance?: string;
-    aiReasoning?: string;
-  } | null;
   createdAt: string;
 }
 
@@ -810,16 +794,16 @@ export default function CaseDetailPage() {
                           )}
                         </TableCell>
                         <TableCell className="max-w-xs">
-                          {doc.smartSummary || doc.metadata?.summary ? (
+                          {doc.metadata?.summary ? (
                             <button
                               onClick={() => setSelectedDocument(doc)}
                               className="text-left hover:bg-muted/50 rounded p-1 -m-1 transition-colors"
                             >
                               <p className="text-sm text-muted-foreground line-clamp-2">
-                                {doc.smartSummary || doc.metadata?.summary}
+                                {doc.metadata.summary}
                               </p>
                               <span className="text-xs text-blue-600 hover:underline">
-                                {doc.fullAnalysis ? "View AI Analysis" : "Click to read more"}
+                                Click to read more
                               </span>
                             </button>
                           ) : (
@@ -1273,9 +1257,9 @@ export default function CaseDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Document Summary Dialog - Professional Version with AI Analysis */}
+      {/* Document Summary Dialog - Professional Version */}
       <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader className="pb-4 border-b">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
@@ -1285,7 +1269,7 @@ export default function CaseDetailPage() {
                 <DialogTitle className="text-lg font-semibold truncate pr-4">
                   {selectedDocument?.fileName}
                 </DialogTitle>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <div className="flex items-center gap-2 mt-2">
                   {selectedDocument?.category && (
                     <Badge>{selectedDocument.category}</Badge>
                   )}
@@ -1297,28 +1281,20 @@ export default function CaseDetailPage() {
                       {selectedDocument?.confidence}% confidence
                     </span>
                   )}
-                  {selectedDocument?.fullAnalysis && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      AI Enhanced
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
           </DialogHeader>
 
           <div className="space-y-5 py-4">
-            {/* AI Smart Summary (preferred) or Legacy Summary */}
+            {/* Summary Section */}
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {selectedDocument?.smartSummary ? "AI Summary" : "Summary"}
+                Summary
               </h4>
               <div className="bg-muted/50 rounded-lg p-4">
                 <p className="text-sm leading-relaxed">
-                  {selectedDocument?.smartSummary
-                    ? selectedDocument.smartSummary
-                    : selectedDocument?.metadata?.summary
+                  {selectedDocument?.metadata?.summary
                     ? cleanSummaryText(selectedDocument.metadata.summary)
                     : selectedDocument?.category
                     ? `This document has been classified as a ${selectedDocument.subtype || selectedDocument.category}.`
@@ -1327,90 +1303,8 @@ export default function CaseDetailPage() {
               </div>
             </div>
 
-            {/* Full AI Analysis Section */}
-            {selectedDocument?.fullAnalysis && (
-              <>
-                {/* Key Findings */}
-                {selectedDocument.fullAnalysis.keyFindings && selectedDocument.fullAnalysis.keyFindings.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Key Findings
-                    </h4>
-                    <ul className="space-y-2">
-                      {selectedDocument.fullAnalysis.keyFindings.map((finding, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span>{finding}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Discovery Relevance */}
-                {selectedDocument.fullAnalysis.discoveryRelevance && selectedDocument.fullAnalysis.discoveryRelevance.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Discovery Relevance
-                    </h4>
-                    <ul className="space-y-2">
-                      {selectedDocument.fullAnalysis.discoveryRelevance.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <ClipboardList className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Financial Summary */}
-                {selectedDocument.fullAnalysis.financialSummary && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Financial Summary
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {selectedDocument.fullAnalysis.financialSummary.largestTransaction && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Largest Transaction</p>
-                          <p className="text-sm font-medium">
-                            ${selectedDocument.fullAnalysis.financialSummary.largestTransaction.amount.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedDocument.fullAnalysis.financialSummary.largestTransaction.description}
-                          </p>
-                        </div>
-                      )}
-                      {selectedDocument.fullAnalysis.financialSummary.recurringPayments &&
-                       selectedDocument.fullAnalysis.financialSummary.recurringPayments.length > 0 && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Recurring Payments</p>
-                          <p className="text-sm">
-                            {selectedDocument.fullAnalysis.financialSummary.recurringPayments.slice(0, 3).join(", ")}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Legal Significance */}
-                {selectedDocument.fullAnalysis.legalSignificance && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Legal Significance
-                    </h4>
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="text-sm">{selectedDocument.fullAnalysis.legalSignificance}</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Key Details Grid - Show if no fullAnalysis or as supplement */}
-            {!selectedDocument?.fullAnalysis && (selectedDocument?.metadata?.startDate ||
+            {/* Key Details Grid */}
+            {(selectedDocument?.metadata?.startDate ||
               selectedDocument?.metadata?.endDate ||
               (selectedDocument?.metadata?.amounts && selectedDocument.metadata.amounts.length > 0)) && (
               <div>
@@ -1443,24 +1337,8 @@ export default function CaseDetailPage() {
               </div>
             )}
 
-            {/* Parties - Use fullAnalysis.partiesMentioned if available, fall back to metadata.parties */}
-            {(selectedDocument?.fullAnalysis?.partiesMentioned && selectedDocument.fullAnalysis.partiesMentioned.length > 0) ? (
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Parties Mentioned
-                </h4>
-                <div className="space-y-2">
-                  {selectedDocument.fullAnalysis.partiesMentioned.map((party, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Badge variant="secondary" className="font-normal">
-                        {party.name}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{party.role}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : selectedDocument?.metadata?.parties &&
+            {/* Parties - Only show if we have valid party names */}
+            {selectedDocument?.metadata?.parties &&
              getValidParties(selectedDocument.metadata.parties).length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
