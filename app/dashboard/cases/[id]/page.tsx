@@ -1276,9 +1276,9 @@ export default function CaseDetailPage() {
                   {selectedDocument?.subtype && (
                     <Badge variant="outline">{selectedDocument.subtype}</Badge>
                   )}
-                  {selectedDocument?.confidence !== null && (
+                  {selectedDocument?.confidence != null && (
                     <span className="text-sm text-muted-foreground">
-                      {selectedDocument.confidence}% confidence
+                      {selectedDocument?.confidence}% confidence
                     </span>
                   )}
                 </div>
