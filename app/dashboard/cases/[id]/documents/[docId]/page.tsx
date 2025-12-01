@@ -146,6 +146,10 @@ export default function DocumentViewerPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("preview");
 
+  // Preview URL state - fetched dynamically from Dropbox or Supabase
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   // Override state
   const [showOverride, setShowOverride] = useState(false);
   const [overrideCategory, setOverrideCategory] = useState("");
@@ -161,6 +165,13 @@ export default function DocumentViewerPage() {
     fetchHistory();
   }, [docId]);
 
+  // Fetch preview URL when document is loaded
+  useEffect(() => {
+    if (document && !previewUrl && !previewLoading) {
+      fetchPreviewUrl();
+    }
+  }, [document]);
+
   const fetchDocument = async () => {
     try {
       const response = await fetch(`/api/documents/${docId}`);
@@ -175,6 +186,23 @@ export default function DocumentViewerPage() {
       setError("Failed to load document");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPreviewUrl = async () => {
+    setPreviewLoading(true);
+    try {
+      const response = await fetch(`/api/documents/${docId}/preview-url`);
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewUrl(data.url);
+      } else {
+        console.log("Preview URL not available");
+      }
+    } catch (error) {
+      console.error("Failed to fetch preview URL:", error);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -387,11 +415,12 @@ export default function DocumentViewerPage() {
             {/* PDF Viewer - Takes 2 columns */}
             <div className="lg:col-span-2">
               <PDFViewer
-                fileUrl={document.storageUrl}
+                fileUrl={previewUrl}
                 fileName={document.fileName}
                 fileType={document.fileType || "pdf"}
                 height="700px"
                 onDownload={handleDownload}
+                isLoading={previewLoading}
               />
             </div>
 
