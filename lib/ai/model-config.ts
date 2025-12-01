@@ -24,11 +24,11 @@ export interface EmbeddingModelConfig {
   costPer1k: number;
 }
 
-// Default model configurations (Updated Nov 2025 for GPT-5 family)
+// Default model configurations (GPT-5 family - Released Aug 2025)
 const DEFAULT_MODELS: ModelConfigs = {
   classification: {
     model: 'gpt-5-nano',  // Best for classification - fast and cheap
-    maxTokens: 2000,  // Increased from 500 - GPT-5 models need buffer for reasoning overhead
+    maxTokens: 2000,
     temperature: 0.1,
     inputCostPer1k: 0.00005,  // $0.05 per 1M tokens
     outputCostPer1k: 0.0004,  // $0.40 per 1M tokens
