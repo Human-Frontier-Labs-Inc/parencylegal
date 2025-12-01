@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Home, Settings, Folder, FileText, Sparkles, CreditCard } from "lucide-react";
+import { Home, Settings, Folder, FileText, Sparkles, CreditCard, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -49,6 +49,7 @@ export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPric
   const navItems = [
     { href: "/dashboard", icon: <Home size={16} />, label: "Dashboard" },
     { href: "/dashboard/cases", icon: <Folder size={16} />, label: "Cases" },
+    { href: "/dashboard/usage", icon: <BarChart3 size={16} />, label: "Usage" },
     { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
   ];
 
