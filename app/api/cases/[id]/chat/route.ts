@@ -256,14 +256,16 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
     const chatConfig = getChatConfig();
     const model = chatConfig.model;
 
+    console.log(`[Chat] Using model: ${model}, maxTokens: ${chatConfig.maxTokens}`);
+
     // Stream the response
-    // Note: GPT-5 models use max_completion_tokens instead of max_tokens
-    const isGpt5 = model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
+    // Note: GPT-5 and o-series models use max_completion_tokens instead of max_tokens
+    const usesCompletionTokens = model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
     const stream = await openai.chat.completions.create({
       model,
       messages,
       stream: true,
-      ...(isGpt5
+      ...(usesCompletionTokens
         ? { max_completion_tokens: chatConfig.maxTokens }
         : { max_tokens: chatConfig.maxTokens }
       ),
@@ -278,6 +280,8 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          console.log(`[Chat] Stream starting for chat ${chat.id}`);
+
           // Save user message to database immediately
           await db.insert(chatMessagesTable).values({
             chatId: chat.id,
@@ -289,12 +293,16 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
             model: null,
           });
 
+          console.log(`[Chat] Starting to iterate stream...`);
+          let chunkCount = 0;
+
           for await (const chunk of stream) {
+            chunkCount++;
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
               fullResponse += content;
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ content, type: "content" })}`)
+                encoder.encode(`data: ${JSON.stringify({ content, type: "content" })}\n\n`)
               );
             }
 
@@ -304,6 +312,8 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
               outputTokens = chunk.usage.completion_tokens;
             }
           }
+
+          console.log(`[Chat] Stream complete. Received ${chunkCount} chunks, response length: ${fullResponse.length}`);
 
           // Estimate tokens if not provided
           if (inputTokens === 0) {
@@ -359,9 +369,15 @@ ${allDocuments.map(d => `- ${d.fileName} [${d.category || "Uncategorized"}${d.su
 
           controller.close();
         } catch (error: any) {
+          console.error("[Chat] Stream error:", error);
+          const errorMessage = error.message || "An error occurred while processing your request.";
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`
+              `data: ${JSON.stringify({
+                type: "error",
+                error: errorMessage,
+                details: error.code || error.type || "unknown"
+              })}\n\n`
             )
           );
           controller.close();
