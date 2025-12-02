@@ -60,7 +60,14 @@
       "Bash(1 echo \"/signup\")",
       "Bash(1 echo \"/dashboard\")",
       "Bash(1 echo \"7e1nwnus7ojiuhu\")",
-      "Bash(1 echo \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkcHV3amJ5amZndGtua21zd2thIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg2ODQxOSwiZXhwIjoyMDc5NDQ0NDE5fQ.AfB_JASwLQaNr7rPKRUqOBznqtfeV0funG7DWhFS7vU\")"
+      "Bash(1 echo \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkcHV3amJ5amZndGtua21zd2thIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg2ODQxOSwiZXhwIjoyMDc5NDQ0NDE5fQ.AfB_JASwLQaNr7rPKRUqOBznqtfeV0funG7DWhFS7vU\")",
+      "Bash(xxd:*)",
+      "Bash(stripe products create:*)",
+      "Bash(stripe prices create:*)",
+      "Bash(stripe webhook_endpoints:*)",
+      "Bash(stripe products list:*)",
+      "Bash(stripe products update:*)",
+      "Bash(vercel domains:*)"
     ],
     "deny": []
   },

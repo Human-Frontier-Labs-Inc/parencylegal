@@ -5,15 +5,22 @@ import Stripe from "stripe";
 import { updateProfile, updateProfileByStripeCustomerId } from "@/db/queries/profiles-queries";
 
 const relevantEvents = new Set([
-  "checkout.session.completed", 
-  "customer.subscription.updated", 
+  "checkout.session.completed",
+  "customer.subscription.updated",
   "customer.subscription.deleted",
   "invoice.payment_succeeded",
   "invoice.payment_failed"
 ]);
 
-// Default usage credits for Pro plan
-const DEFAULT_USAGE_CREDITS = 250;
+// Plan limits based on membership tier
+const PLAN_LIMITS = {
+  solo: { documentLimit: 500, seatsLimit: 1 },
+  small_firm: { documentLimit: 2000, seatsLimit: 5 },
+  enterprise: { documentLimit: 999999, seatsLimit: 999 }, // Effectively unlimited
+  trial: { documentLimit: 100, seatsLimit: 1 }
+} as const;
+
+type MembershipType = keyof typeof PLAN_LIMITS;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -83,24 +90,39 @@ async function handleCheckoutSession(event: Stripe.Event) {
     });
 
     const productId = subscription.items.data[0].price.product as string;
-    await manageSubscriptionStatusChange(subscription.id, subscription.customer as string, productId);
-    
-    // Reset usage credits on new subscription
+    const membershipStatus = await manageSubscriptionStatusChange(subscription.id, subscription.customer as string, productId);
+
+    // Get the product to determine membership type from metadata
+    const product = await stripe.products.retrieve(productId);
+    const membershipType = (product.metadata.membership || "solo") as MembershipType;
+    const planLimits = PLAN_LIMITS[membershipType] || PLAN_LIMITS.solo;
+
+    // Determine plan duration from price interval
+    const priceId = subscription.items.data[0].price.id;
+    const price = await stripe.prices.retrieve(priceId);
+    const planDuration = price.recurring?.interval === "year" ? "yearly" : "monthly";
+
+    // Update profile with plan details and limits
     if (checkoutSession.client_reference_id) {
       try {
         const billingCycleStart = new Date(subscription.current_period_start * 1000);
         const billingCycleEnd = new Date(subscription.current_period_end * 1000);
-        
-        // TODO: Phase 2+ - Implement document credits system
+
         await updateProfile(checkoutSession.client_reference_id, {
           status: "active",
+          membership: membershipType,
+          stripePriceId: priceId,
+          planDuration,
           billingCycleStart,
-          billingCycleEnd
+          billingCycleEnd,
+          documentLimit: planLimits.documentLimit,
+          seatsLimit: planLimits.seatsLimit,
+          documentsProcessedThisMonth: 0 // Reset on new subscription
         });
 
-        console.log(`Updated billing cycle for user ${checkoutSession.client_reference_id}`);
+        console.log(`Updated profile for user ${checkoutSession.client_reference_id}: membership=${membershipType}, planDuration=${planDuration}, documentLimit=${planLimits.documentLimit}`);
       } catch (error) {
-        console.error(`Error updating usage credits: ${error}`);
+        console.error(`Error updating profile: ${error}`);
       }
     }
   }

@@ -62,8 +62,14 @@ export const manageSubscriptionStatusChange = async (subscriptionId: string, cus
 
     const product = await stripe.products.retrieve(productId);
     const membership = product.metadata.membership as MembershipStatus;
-    if (!["free", "pro"].includes(membership)) {
-      throw new Error(`Invalid membership type in product metadata: ${membership}`);
+
+    // Valid membership types: trial, solo, small_firm, enterprise
+    const validMemberships = ["trial", "solo", "small_firm", "enterprise"];
+    if (!validMemberships.includes(membership)) {
+      console.error(`Invalid membership type in product metadata: ${membership}. Expected one of: ${validMemberships.join(", ")}`);
+      console.error(`Product ID: ${productId}, Product Name: ${product.name}`);
+      // Default to solo if metadata is missing or invalid
+      console.log(`Defaulting to 'solo' membership for product: ${product.name}`);
     }
 
     const membershipStatus = getMembershipStatus(subscription.status, membership);
