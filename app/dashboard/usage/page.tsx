@@ -1,6 +1,6 @@
 /**
  * Usage Dashboard Page
- * Phase 12.5.5: Display AI token usage, costs, and processing statistics
+ * Phase 12.5.5: Display document processing and classification statistics
  */
 "use client";
 
@@ -34,8 +34,6 @@ import {
 import {
   ArrowLeft,
   Loader2,
-  Zap,
-  DollarSign,
   FileText,
   Brain,
   TrendingUp,
@@ -43,16 +41,14 @@ import {
   RefreshCw,
   BarChart3,
   PieChart,
+  Folder,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface UsageStats {
   totalCases: number;
   totalDocuments: number;
   documentsClassified: number;
   documentsNeedingReview: number;
-  totalTokensUsed: number;
-  estimatedCost: number; // in cents
   averageConfidence: number;
   processingStats: {
     pending: number;
@@ -66,8 +62,7 @@ interface CaseUsage {
   caseId: string;
   caseName: string;
   documentCount: number;
-  tokensUsed: number;
-  costCents: number;
+  classifiedCount: number;
   lastActivity: string;
 }
 
@@ -94,7 +89,6 @@ export default function UsageDashboardPage() {
       let totalDocuments = 0;
       let documentsClassified = 0;
       let documentsNeedingReview = 0;
-      let totalTokensUsed = 0;
       let totalConfidence = 0;
       let confidenceCount = 0;
       const usageByCase: CaseUsage[] = [];
@@ -114,7 +108,6 @@ export default function UsageDashboardPage() {
             const docsData = await docsRes.json();
             const documents = docsData.documents || [];
 
-            let caseTokens = 0;
             let caseClassified = 0;
 
             for (const doc of documents) {
@@ -140,22 +133,13 @@ export default function UsageDashboardPage() {
                 totalConfidence += doc.confidence;
                 confidenceCount++;
               }
-
-              // Estimate tokens per document (classification typically uses ~500-1000 tokens)
-              if (doc.category) {
-                const estimatedTokens = 750; // Average tokens per classification
-                caseTokens += estimatedTokens;
-              }
             }
-
-            totalTokensUsed += caseTokens;
 
             usageByCase.push({
               caseId: caseItem.id,
               caseName: caseItem.name,
               documentCount: documents.length,
-              tokensUsed: caseTokens,
-              costCents: Math.round(caseTokens * 0.0002), // Rough estimate based on GPT-4 pricing
+              classifiedCount: caseClassified,
               lastActivity: caseItem.updatedAt,
             });
           }
@@ -164,18 +148,11 @@ export default function UsageDashboardPage() {
         }
       }
 
-      // Estimate cost based on token usage
-      // GPT-4o-mini pricing: ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens
-      // Average ~$0.20 per 1000 tokens combined
-      const estimatedCostCents = Math.round(totalTokensUsed * 0.00002 * 100);
-
       setStats({
         totalCases: cases.length,
         totalDocuments,
         documentsClassified,
         documentsNeedingReview,
-        totalTokensUsed,
-        estimatedCost: estimatedCostCents,
         averageConfidence: confidenceCount > 0 ? Math.round(totalConfidence / confidenceCount) : 0,
         processingStats,
       });
@@ -188,20 +165,6 @@ export default function UsageDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`;
-  };
-
-  const formatTokens = (tokens: number) => {
-    if (tokens >= 1000000) {
-      return `${(tokens / 1000000).toFixed(1)}M`;
-    }
-    if (tokens >= 1000) {
-      return `${(tokens / 1000).toFixed(1)}K`;
-    }
-    return tokens.toString();
   };
 
   const formatDate = (dateStr: string) => {
@@ -243,7 +206,7 @@ export default function UsageDashboardPage() {
             Usage Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            AI token usage, costs, and processing statistics
+            Document processing and classification statistics
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -270,10 +233,25 @@ export default function UsageDashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Total Cases</p>
+                <p className="text-3xl font-bold">{stats?.totalCases || 0}</p>
+              </div>
+              <Folder className="h-10 w-10 text-blue-500" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Active cases in your account
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Total Documents</p>
                 <p className="text-3xl font-bold">{stats?.totalDocuments || 0}</p>
               </div>
-              <FileText className="h-10 w-10 text-blue-500" />
+              <FileText className="h-10 w-10 text-purple-500" />
             </div>
             <div className="mt-2">
               <Progress value={classificationRate} className="h-2" />
@@ -291,7 +269,7 @@ export default function UsageDashboardPage() {
                 <p className="text-sm text-muted-foreground">AI Classifications</p>
                 <p className="text-3xl font-bold">{stats?.documentsClassified || 0}</p>
               </div>
-              <Brain className="h-10 w-10 text-purple-500" />
+              <Brain className="h-10 w-10 text-green-500" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Avg. confidence: {stats?.averageConfidence || 0}%
@@ -303,28 +281,13 @@ export default function UsageDashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Tokens Used</p>
-                <p className="text-3xl font-bold">{formatTokens(stats?.totalTokensUsed || 0)}</p>
+                <p className="text-sm text-muted-foreground">Needs Review</p>
+                <p className="text-3xl font-bold text-orange-600">{stats?.documentsNeedingReview || 0}</p>
               </div>
-              <Zap className="h-10 w-10 text-yellow-500" />
+              <TrendingUp className="h-10 w-10 text-orange-500" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              OpenAI API consumption
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Estimated Cost</p>
-                <p className="text-3xl font-bold">{formatCurrency(stats?.estimatedCost || 0)}</p>
-              </div>
-              <DollarSign className="h-10 w-10 text-green-500" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Based on current pricing
+              Low confidence classifications
             </p>
           </CardContent>
         </Card>
@@ -402,21 +365,21 @@ export default function UsageDashboardPage() {
         </Card>
       </div>
 
-      {/* Usage by Case */}
+      {/* Activity by Case */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Usage by Case
+            Activity by Case
           </CardTitle>
           <CardDescription>
-            Token usage and costs breakdown by case
+            Document processing breakdown by case
           </CardDescription>
         </CardHeader>
         <CardContent>
           {caseUsage.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No cases found. Create a case to start tracking usage.
+              No cases found. Create a case to start tracking activity.
             </div>
           ) : (
             <Table>
@@ -424,61 +387,47 @@ export default function UsageDashboardPage() {
                 <TableRow>
                   <TableHead>Case Name</TableHead>
                   <TableHead className="text-center">Documents</TableHead>
-                  <TableHead className="text-center">Tokens</TableHead>
-                  <TableHead className="text-center">Est. Cost</TableHead>
+                  <TableHead className="text-center">Classified</TableHead>
+                  <TableHead className="text-center">Progress</TableHead>
                   <TableHead className="text-right">Last Activity</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {caseUsage.map((item) => (
-                  <TableRow key={item.caseId}>
-                    <TableCell>
-                      <Link
-                        href={`/dashboard/cases/${item.caseId}`}
-                        className="font-medium hover:underline"
-                      >
-                        {item.caseName}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">{item.documentCount}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatTokens(item.tokensUsed)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={cn(
-                        "font-medium",
-                        item.costCents > 100 ? "text-orange-600" : "text-green-600"
-                      )}>
-                        {formatCurrency(item.costCents)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatDate(item.lastActivity)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {caseUsage.map((item) => {
+                  const progressPct = item.documentCount > 0
+                    ? Math.round((item.classifiedCount / item.documentCount) * 100)
+                    : 0;
+                  return (
+                    <TableRow key={item.caseId}>
+                      <TableCell>
+                        <Link
+                          href={`/dashboard/cases/${item.caseId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {item.caseName}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{item.documentCount}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{item.classifiedCount}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center gap-2 justify-center">
+                          <Progress value={progressPct} className="h-2 w-16" />
+                          <span className="text-sm text-muted-foreground">{progressPct}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatDate(item.lastActivity)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Cost Breakdown Info */}
-      <Card className="mt-6">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <DollarSign className="h-6 w-6 text-muted-foreground flex-shrink-0" />
-            <div>
-              <h3 className="font-medium mb-1">Cost Estimates</h3>
-              <p className="text-sm text-muted-foreground">
-                Costs are estimated based on OpenAI GPT-4o-mini pricing (~$0.15/1M input tokens, ~$0.60/1M output tokens).
-                Actual costs may vary based on document complexity and the model used.
-                For precise billing, check your OpenAI dashboard.
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </main>
