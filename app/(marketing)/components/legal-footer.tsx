@@ -1,11 +1,11 @@
 /**
  * Legal Footer Component
- * Phase 12.1: Homepage redesign for Parency Legal
+ * Co-Parency Legal - AI-powered document management for family law attorneys
  */
 
-import { Button } from "@/components/ui/button";
-import { Scale, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import Link from "next/link";
+import { CoParencyIcon } from "@/components/co-parency-logo";
 
 export default function LegalFooter() {
   return (
@@ -15,8 +15,10 @@ export default function LegalFooter() {
           {/* Brand Column */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <Scale className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Parency Legal</span>
+              <CoParencyIcon size={28} />
+              <span className="text-xl font-bold bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
+                Co-Parency Legal
+              </span>
             </div>
             <p className="text-muted-foreground max-w-md mb-6">
               AI-powered document management for family law attorneys. Organize,
@@ -26,19 +28,19 @@ export default function LegalFooter() {
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <a
-                  href="mailto:support@parencylegal.com"
+                  href="mailto:support@co-parency.com"
                   className="hover:text-foreground transition-colors"
                 >
-                  support@parencylegal.com
+                  support@co-parency.com
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                <span>(888) PAR-ENCY</span>
+                <span>(888) CO-PARENCY</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <span>Austin, Texas</span>
+                <span>Indiana</span>
               </div>
             </div>
           </div>
@@ -92,34 +94,10 @@ export default function LegalFooter() {
             <ul className="space-y-3">
               <li>
                 <Link
-                  href="/privacy"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/terms"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/security"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Security
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/compliance"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Compliance
+                  Terms & Agreements
                 </Link>
               </li>
             </ul>
@@ -129,7 +107,7 @@ export default function LegalFooter() {
         {/* Bottom Bar */}
         <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-muted-foreground text-sm mb-4 md:mb-0">
-            © {new Date().getFullYear()} Parency Legal. All rights reserved.
+            © {new Date().getFullYear()} Co-Parency, LLC. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
