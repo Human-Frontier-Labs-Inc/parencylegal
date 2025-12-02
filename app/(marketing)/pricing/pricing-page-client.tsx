@@ -75,16 +75,16 @@ export default function PricingPageClient({
     {
       name: "Solo",
       description: "Perfect for solo practitioners",
-      monthlyPrice: 99,
-      yearlyPrice: 948, // $79/month billed yearly (20% off)
+      monthlyPrice: 49,
+      yearlyPrice: 479, // ~$40/month billed yearly (20% off)
       priceIdMonthly: soloPriceIdMonthly,
       priceIdYearly: soloPriceIdYearly,
-      cases: 10,
+      cases: 50,
       docsPerMonth: 500,
       seats: 1,
       icon: Users,
       features: [
-        "Up to 10 active cases",
+        "Up to 50 active cases",
         "500 documents/month",
         "AI document classification",
         "Dropbox sync",
@@ -96,19 +96,19 @@ export default function PricingPageClient({
     {
       name: "Small Firm",
       description: "For growing family law practices",
-      monthlyPrice: 299,
-      yearlyPrice: 2868, // $239/month billed yearly (20% off)
+      monthlyPrice: 149,
+      yearlyPrice: 1428, // ~$119/month billed yearly (20% off)
       priceIdMonthly: firmPriceIdMonthly,
       priceIdYearly: firmPriceIdYearly,
-      cases: 50,
-      docsPerMonth: 2500,
+      cases: "unlimited",
+      docsPerMonth: 2000,
       seats: 5,
       icon: Briefcase,
       highlighted: true,
       badge: "Most Popular",
       features: [
-        "Up to 50 active cases",
-        "2,500 documents/month",
+        "Unlimited active cases",
+        "2,000 documents/month",
         "Everything in Solo, plus:",
         "5 team member seats",
         "Priority AI processing",
