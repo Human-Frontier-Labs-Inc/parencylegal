@@ -649,14 +649,14 @@ export function DiscoveryCompliancePanel({
                 <div>
                   <Label>Expected Category (optional)</Label>
                   <Select
-                    value={newRequest.categoryHint}
-                    onValueChange={(v) => setNewRequest({ ...newRequest, categoryHint: v })}
+                    value={newRequest.categoryHint || "auto"}
+                    onValueChange={(v) => setNewRequest({ ...newRequest, categoryHint: v === "auto" ? "" : v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Auto-detect" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Auto-detect</SelectItem>
+                      <SelectItem value="auto">Auto-detect</SelectItem>
                       <SelectItem value="Financial">Financial</SelectItem>
                       <SelectItem value="Medical">Medical</SelectItem>
                       <SelectItem value="Legal">Legal</SelectItem>
