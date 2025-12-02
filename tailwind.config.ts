@@ -52,6 +52,24 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Co-Parency Brand Colors
+        brand: {
+          navy: {
+            DEFAULT: "#1E3A5F",
+            light: "#2C5282",
+            dark: "#152942",
+          },
+          teal: {
+            DEFAULT: "#4DB6AC",
+            light: "#80CBC4",
+            dark: "#00897B",
+          },
+          orange: {
+            DEFAULT: "#E67E22",
+            light: "#F39C12",
+            dark: "#D35400",
+          },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

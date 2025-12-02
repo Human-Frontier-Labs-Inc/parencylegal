@@ -7,11 +7,12 @@
 
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-import { Home, LayoutDashboard, Menu, X, Scale } from "lucide-react";
+import { Home, LayoutDashboard, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { CoParencyIcon } from "@/components/co-parency-logo";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -73,31 +74,33 @@ export default function Header() {
         <div className="px-6 py-3 relative">
           <div className="flex items-center justify-between gap-8">
             {/* Logo area with glow */}
-            <motion.div 
-              className="flex items-center space-x-3"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              <div className="bg-primary/10 p-2 rounded-xl shadow-sm border border-primary/20 relative group">
-                {/* Enhanced glow behind logo */}
-                <motion.div 
-                  className="absolute inset-0 bg-primary/10 rounded-xl blur-md group-hover:blur-lg transition-all duration-300"
-                  animate={{ 
-                    boxShadow: [
-                      "0 0 0px rgba(var(--primary), 0.2)", 
-                      "0 0 15px rgba(var(--primary), 0.4)", 
-                      "0 0 0px rgba(var(--primary), 0.2)"
-                    ]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
-                
-                <Scale className="w-5 h-5 text-primary relative z-10" />
-              </div>
-              <div className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Parency Legal
-              </div>
-            </motion.div>
+            <Link href="/">
+              <motion.div
+                className="flex items-center space-x-3"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <div className="relative group">
+                  {/* Enhanced glow behind logo */}
+                  <motion.div
+                    className="absolute inset-0 bg-[#4DB6AC]/20 rounded-xl blur-md group-hover:blur-lg transition-all duration-300"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px rgba(77, 182, 172, 0.2)",
+                        "0 0 15px rgba(77, 182, 172, 0.4)",
+                        "0 0 0px rgba(77, 182, 172, 0.2)"
+                      ]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+
+                  <CoParencyIcon size={36} className="relative z-10" />
+                </div>
+                <div className="text-lg font-bold bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
+                  Co-Parency
+                </div>
+              </motion.div>
+            </Link>
 
             {/* Navigation - Desktop */}
             <nav className="hidden md:flex space-x-2">

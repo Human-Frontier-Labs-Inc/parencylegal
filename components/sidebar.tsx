@@ -16,6 +16,7 @@ import { SelectProfile } from "@/db/schema/profiles-schema";
 // import { CreditUsageDisplay } from "@/components/credit-usage-display";
 import UpgradePlanPopup from "@/components/upgrade-plan-popup";
 import { useState, useEffect, useCallback } from "react";
+import { CoParencyIcon, CoParencyIconCompact } from "@/components/co-parency-logo";
 
 interface SidebarProps {
   profile: SelectProfile | null;
@@ -106,16 +107,21 @@ export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPric
         {/* Logo */}
         <div className="px-3 mb-8 relative z-10">
           <Link href="/dashboard">
-            <motion.div 
-              className="flex items-center justify-center md:justify-start"
+            <motion.div
+              className="flex items-center justify-center md:justify-start gap-2"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="hidden md:block">
-                <span className="font-bold text-lg">Parency Legal</span>
+              {/* Desktop: Full logo with text */}
+              <div className="hidden md:flex items-center gap-2">
+                <CoParencyIcon size={28} />
+                <span className="font-bold text-base bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
+                  Co-Parency
+                </span>
               </div>
-              <div className="block md:hidden text-center">
-                <span className="font-bold text-sm">PL</span>
+              {/* Mobile: Compact icon only */}
+              <div className="block md:hidden">
+                <CoParencyIconCompact size={32} />
               </div>
             </motion.div>
           </Link>
