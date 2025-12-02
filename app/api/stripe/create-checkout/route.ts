@@ -4,6 +4,15 @@ import { stripe } from "@/lib/stripe";
 
 export async function POST(req: Request) {
   try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("STRIPE_SECRET_KEY is not configured");
+      return NextResponse.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
+
     const { userId } = await auth();
 
     if (!userId) {
@@ -22,6 +31,8 @@ export async function POST(req: Request) {
       );
     }
 
+    console.log("Creating checkout session with priceId:", priceId);
+
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -32,19 +43,21 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://parencylegal.vercel.app'}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://parencylegal.vercel.app'}/pricing`,
       client_reference_id: userId,
       metadata: {
         userId,
       },
     });
 
+    console.log("Checkout session created:", session.id);
+
     return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error("Error creating checkout session:", error);
+  } catch (error: any) {
+    console.error("Error creating checkout session:", error?.message || error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error?.message || "Internal server error" },
       { status: 500 }
     );
   }
