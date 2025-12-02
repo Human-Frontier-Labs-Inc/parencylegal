@@ -12,6 +12,7 @@ export {
   getDiscoveryRequest,
   updateDiscoveryRequest,
   deleteDiscoveryRequest,
+  deleteAllDiscoveryRequestsForCase,
   getNextRequestNumber,
   requestNumberExists,
   getDiscoveryStats,

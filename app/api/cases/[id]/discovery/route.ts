@@ -74,6 +74,51 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const { id: caseId } = await params;
+
+    // Verify case belongs to user
+    const [caseData] = await db
+      .select()
+      .from(casesTable)
+      .where(and(eq(casesTable.id, caseId), eq(casesTable.userId, userId)));
+
+    if (!caseData) {
+      return new Response(JSON.stringify({ error: "Case not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Delete all discovery requests for this case
+    const { deleteAllDiscoveryRequestsForCase } = await import("@/lib/discovery");
+    const deletedCount = await deleteAllDiscoveryRequestsForCase(caseId, userId);
+
+    return new Response(
+      JSON.stringify({ success: true, deleted: deletedCount }),
+      { headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("[Discovery API] DELETE error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to delete discovery requests" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
