@@ -41,10 +41,6 @@ import {
   X,
   Sparkles,
   Brain,
-  Plus,
-  Trash2,
-  ClipboardList,
-  CircleDot,
   TrendingUp,
   Calendar,
   Search,
@@ -52,7 +48,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
-import { CaseInsightsPanel } from "@/components/insights/case-insights-panel";
+import { DiscoveryCompliancePanel } from "@/components/insights/discovery-compliance-panel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -107,20 +103,6 @@ interface Document {
     endDate?: string;
     [key: string]: any;
   } | null;
-  createdAt: string;
-}
-
-interface DiscoveryRequest {
-  id: string;
-  type: string;
-  number: number;
-  text: string;
-  categoryHint: string | null;
-  status: 'incomplete' | 'partial' | 'complete';
-  completionPercentage: number;
-  notes: string | null;
-  matchingDocumentCount: number;
-  matchingDocumentIds: string[];
   createdAt: string;
 }
 
@@ -227,12 +209,7 @@ export default function CaseDetailPage() {
     message: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [discoveryRequests, setDiscoveryRequests] = useState<DiscoveryRequest[]>([]);
-  const [showAddRfpDialog, setShowAddRfpDialog] = useState(false);
-  const [newRfp, setNewRfp] = useState({ type: 'RFP', number: 1, text: '', categoryHint: '' });
-  const [addingRfp, setAddingRfp] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [selectedRfp, setSelectedRfp] = useState<DiscoveryRequest | null>(null);
   const [reprocessing, setReprocessing] = useState(false);
   const [reprocessingDocId, setReprocessingDocId] = useState<string | null>(null);
 
@@ -240,7 +217,6 @@ export default function CaseDetailPage() {
     fetchCaseData();
     fetchDocuments();
     fetchProcessingStatus();
-    fetchDiscoveryRequests();
   }, [caseId]);
 
   // Poll for processing status while documents are being analyzed
@@ -364,46 +340,6 @@ export default function CaseDetailPage() {
     }
   };
 
-  const fetchDiscoveryRequests = async () => {
-    try {
-      // Using new Phase 8 API endpoint
-      const response = await fetch(`/api/cases/${caseId}/discovery?stats=true`);
-      if (response.ok) {
-        const data = await response.json();
-        setDiscoveryRequests(data.requests || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch discovery requests:", error);
-    }
-  };
-
-  const handleAddRfp = async () => {
-    if (!newRfp.text.trim()) return;
-
-    setAddingRfp(true);
-    try {
-      // Using new Phase 8 API endpoint
-      const response = await fetch(`/api/cases/${caseId}/discovery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newRfp),
-      });
-
-      if (response.ok) {
-        setShowAddRfpDialog(false);
-        setNewRfp({ type: 'RFP', number: discoveryRequests.length + 2, text: '', categoryHint: '' });
-        await fetchDiscoveryRequests();
-      } else {
-        const error = await response.json();
-        alert(error.error || "Failed to add request");
-      }
-    } catch (error) {
-      console.error("Failed to add RFP:", error);
-    } finally {
-      setAddingRfp(false);
-    }
-  };
-
   const handleReprocessAll = async () => {
     if (!confirm(`Reprocess all ${documents.length} documents? This will re-run OCR and classification on all documents.`)) {
       return;
@@ -461,36 +397,6 @@ export default function CaseDetailPage() {
       alert("Reprocess failed. Check the console for details.");
     } finally {
       setReprocessingDocId(null);
-    }
-  };
-
-  const handleDeleteRfp = async (requestId: string) => {
-    try {
-      // Using new Phase 8 API endpoint
-      const response = await fetch(`/api/cases/${caseId}/discovery/${requestId}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        await fetchDiscoveryRequests();
-      }
-    } catch (error) {
-      console.error("Failed to delete RFP:", error);
-    }
-  };
-
-  const handleUpdateRfpStatus = async (requestId: string, status: string) => {
-    try {
-      // Using new Phase 8 API endpoint
-      const response = await fetch(`/api/cases/${caseId}/discovery/${requestId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (response.ok) {
-        await fetchDiscoveryRequests();
-      }
-    } catch (error) {
-      console.error("Failed to update RFP:", error);
     }
   };
 
@@ -719,14 +625,6 @@ export default function CaseDetailPage() {
               <TrendingUp className="h-3 w-3" />
             </span>
           </TabsTrigger>
-          <TabsTrigger value="discovery">
-            Discovery Requests
-            {discoveryRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {discoveryRequests.filter(r => r.status === 'incomplete').length} pending
-              </Badge>
-            )}
-          </TabsTrigger>
           <TabsTrigger value="chat">
             <span className="flex items-center gap-1">
               AI Chat
@@ -896,8 +794,9 @@ export default function CaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="insights">
-          <CaseInsightsPanel
+          <DiscoveryCompliancePanel
             caseId={caseId}
+            caseName={caseData?.name}
             onDocumentClick={(docId) => router.push(`/dashboard/cases/${caseId}/documents/${docId}`)}
           />
         </TabsContent>
@@ -960,244 +859,6 @@ export default function CaseDetailPage() {
           <Card>
             <CardContent className="p-0">
               <CaseChat caseId={caseId} caseName={caseData.name} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="discovery">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Discovery Requests</CardTitle>
-                <CardDescription>
-                  Track RFP (Request for Production) items and see what documents match
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/dashboard/cases/${caseId}/discovery`)}
-                >
-                  Open Full View
-                </Button>
-                <Dialog open={showAddRfpDialog} onOpenChange={setShowAddRfpDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Request
-                    </Button>
-                  </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Discovery Request</DialogTitle>
-                    <DialogDescription>
-                      Add an RFP item to track which documents fulfill this request
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Type</label>
-                        <Select
-                          value={newRfp.type}
-                          onValueChange={(val) => setNewRfp({ ...newRfp, type: val })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="RFP">RFP (Request for Production)</SelectItem>
-                            <SelectItem value="Interrogatory">Interrogatory</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Number</label>
-                        <Input
-                          type="number"
-                          value={newRfp.number}
-                          onChange={(e) => setNewRfp({ ...newRfp, number: parseInt(e.target.value) || 1 })}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Request Text</label>
-                      <Textarea
-                        placeholder="e.g., All bank statements from January 2023 to present"
-                        value={newRfp.text}
-                        onChange={(e) => setNewRfp({ ...newRfp, text: e.target.value })}
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Category Hint (optional)</label>
-                      <Select
-                        value={newRfp.categoryHint}
-                        onValueChange={(val) => setNewRfp({ ...newRfp, categoryHint: val })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Financial">Financial</SelectItem>
-                          <SelectItem value="Medical">Medical</SelectItem>
-                          <SelectItem value="Legal">Legal</SelectItem>
-                          <SelectItem value="Communications">Communications</SelectItem>
-                          <SelectItem value="Property">Property</SelectItem>
-                          <SelectItem value="Employment">Employment</SelectItem>
-                          <SelectItem value="Personal">Personal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddRfpDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddRfp} disabled={addingRfp || !newRfp.text.trim()}>
-                      {addingRfp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Add Request
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {discoveryRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No discovery requests yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Add RFP items to track which documents fulfill each request
-                  </p>
-                  <Button onClick={() => setShowAddRfpDialog(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add First Request
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Gap Analysis Summary */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <Card className="bg-green-50 dark:bg-green-950 border-green-200">
-                      <CardContent className="pt-4">
-                        <div className="text-2xl font-bold text-green-700">
-                          {discoveryRequests.filter(r => r.matchingDocumentCount > 0).length}
-                        </div>
-                        <div className="text-sm text-green-600">Requests with matches</div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200">
-                      <CardContent className="pt-4">
-                        <div className="text-2xl font-bold text-yellow-700">
-                          {discoveryRequests.filter(r => r.status === 'partial').length}
-                        </div>
-                        <div className="text-sm text-yellow-600">Partially fulfilled</div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-red-50 dark:bg-red-950 border-red-200">
-                      <CardContent className="pt-4">
-                        <div className="text-2xl font-bold text-red-700">
-                          {discoveryRequests.filter(r => r.matchingDocumentCount === 0).length}
-                        </div>
-                        <div className="text-sm text-red-600">Missing documents</div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Request List */}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-24">Request</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-32">Matches</TableHead>
-                        <TableHead className="w-32">Status</TableHead>
-                        <TableHead className="w-20 text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {discoveryRequests.map((req) => (
-                        <TableRow key={req.id}>
-                          <TableCell className="font-mono font-medium">
-                            {req.type} {req.number}
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-md">
-                              <p className="line-clamp-2">{req.text}</p>
-                              {req.categoryHint && (
-                                <Badge variant="outline" className="mt-1">
-                                  {req.categoryHint}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <button
-                              onClick={() => setSelectedRfp(req)}
-                              className="hover:bg-muted/50 rounded p-1 -m-1 transition-colors"
-                            >
-                              {req.matchingDocumentCount > 0 ? (
-                                <div className="flex items-center text-green-600">
-                                  <CheckCircle className="mr-1 h-4 w-4" />
-                                  <span className="hover:underline">
-                                    {req.matchingDocumentCount} doc{req.matchingDocumentCount !== 1 ? 's' : ''}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center text-red-600">
-                                  <AlertCircle className="mr-1 h-4 w-4" />
-                                  <span className="hover:underline">No matches</span>
-                                </div>
-                              )}
-                            </button>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={req.status}
-                              onValueChange={(val) => handleUpdateRfpStatus(req.id, val)}
-                            >
-                              <SelectTrigger className="w-28">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="incomplete">
-                                  <div className="flex items-center">
-                                    <CircleDot className="mr-1 h-3 w-3 text-red-500" />
-                                    Incomplete
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="partial">
-                                  <div className="flex items-center">
-                                    <CircleDot className="mr-1 h-3 w-3 text-yellow-500" />
-                                    Partial
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="complete">
-                                  <div className="flex items-center">
-                                    <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                                    Complete
-                                  </div>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteRfp(req.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1386,56 +1047,6 @@ export default function CaseDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* RFP Matching Documents Dialog */}
-      <Dialog open={!!selectedRfp} onOpenChange={() => setSelectedRfp(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedRfp?.type} {selectedRfp?.number} - Matching Documents
-            </DialogTitle>
-            <DialogDescription>
-              {selectedRfp?.text}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {selectedRfp?.matchingDocumentCount === 0 ? (
-              <div className="text-center py-8">
-                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No matching documents</h3>
-                <p className="text-muted-foreground">
-                  No documents in this case match the category "{selectedRfp?.categoryHint || 'unspecified'}"
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {documents
-                  .filter(doc => selectedRfp?.matchingDocumentIds?.includes(doc.id))
-                  .map(doc => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.fileName}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {doc.metadata?.summary || doc.subtype || doc.category}
-                          </p>
-                        </div>
-                      </div>
-                      <Link href={`/dashboard/cases/${caseId}/documents/${doc.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </main>
   );
 }
