@@ -182,6 +182,26 @@ export async function getNextRequestNumber(
 }
 
 /**
+ * Delete all discovery requests for a case
+ */
+export async function deleteAllDiscoveryRequestsForCase(
+  caseId: string,
+  userId: string
+): Promise<number> {
+  const result = await db
+    .delete(discoveryRequestsTable)
+    .where(
+      and(
+        eq(discoveryRequestsTable.caseId, caseId),
+        eq(discoveryRequestsTable.userId, userId)
+      )
+    )
+    .returning({ id: discoveryRequestsTable.id });
+
+  return result.length;
+}
+
+/**
  * Check if a request number already exists
  */
 export async function requestNumberExists(
