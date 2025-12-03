@@ -3,7 +3,7 @@
  * Allows users to configure their account and integrations
  */
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DropboxConnection } from "@/components/dropbox";
+import { CloudStorageSettings } from "@/components/cloud-storage";
 
 export default function SettingsPage() {
   return (
@@ -25,8 +25,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Dropbox Integration */}
-        <DropboxConnection />
+        {/* Cloud Storage Integrations (Dropbox + OneDrive) */}
+        <CloudStorageSettings />
 
         {/* Notifications */}
         <Card>

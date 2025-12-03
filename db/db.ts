@@ -8,6 +8,7 @@ import { documentRequestMappingsTable } from "./schema/document-request-mappings
 import { aiChatSessionsTable } from "./schema/ai-chat-sessions-schema";
 import { syncHistoryTable } from "./schema/sync-history-schema";
 import { dropboxConnectionsTable } from "./schema/dropbox-connections-schema";
+import { onedriveConnectionsTable } from "./schema/onedrive-connections-schema";
 import { documentProcessingQueueTable } from "./schema/document-processing-queue-schema";
 import { documentChunksTable } from "./schema/document-chunks-schema";
 import { env } from "@/lib/env";
@@ -21,7 +22,8 @@ const schema = {
   documentRequestMappings: documentRequestMappingsTable,
   aiChatSessions: aiChatSessionsTable,
   syncHistory: syncHistoryTable,
-  dropboxConnections: dropboxConnectionsTable,
+  dropboxConnectionsTable: dropboxConnectionsTable,
+  onedriveConnectionsTable: onedriveConnectionsTable,
   documentProcessingQueue: documentProcessingQueueTable,
   documentChunks: documentChunksTable,
 };
