@@ -227,8 +227,8 @@ export function RequestList({
       </CardHeader>
 
       <CardContent>
-        <ScrollArea className="max-h-[600px]">
-          <div className="space-y-3">
+        <ScrollArea className="h-[500px]">
+          <div className="space-y-3 pr-4">
             {filteredRequests.map((request) => (
               <Collapsible
                 key={request.id}
