@@ -1,6 +1,6 @@
 /**
  * Case Sync API
- * POST /api/cases/:id/sync - Sync documents from Dropbox
+ * POST /api/cases/:id/sync - Sync documents from cloud storage (Dropbox or OneDrive)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -9,6 +9,8 @@ import { db } from "@/db/db";
 import { casesTable } from "@/db/schema/cases-schema";
 import { eq, and } from "drizzle-orm";
 import { syncDropboxFolder } from "@/lib/dropbox/sync";
+// TODO: Import OneDrive sync when implemented
+// import { syncOneDriveFolder } from "@/lib/onedrive/sync";
 
 export async function POST(
   request: NextRequest,
@@ -35,20 +37,34 @@ export async function POST(
       return NextResponse.json({ error: "Case not found" }, { status: 404 });
     }
 
-    if (!caseData.dropboxFolderPath) {
+    // Check for cloud storage connection (new fields first, then legacy)
+    const provider = caseData.cloudStorageProvider;
+    const folderPath = caseData.cloudFolderPath || caseData.dropboxFolderPath;
+
+    if (!folderPath) {
       return NextResponse.json(
-        { error: "No Dropbox folder connected to this case" },
+        { error: "No cloud storage folder connected to this case" },
         { status: 400 }
       );
     }
 
-    // Sync documents from Dropbox
+    // Sync based on provider
+    if (provider === 'onedrive') {
+      // TODO: Implement OneDrive sync
+      return NextResponse.json(
+        { error: "OneDrive sync not yet implemented" },
+        { status: 501 }
+      );
+    }
+
+    // Default to Dropbox sync (for legacy cases without cloudStorageProvider set)
     const result = await syncDropboxFolder(id, userId);
 
     // Note: lastSyncedAt is already updated in syncDropboxFolder
 
     return NextResponse.json({
       success: true,
+      provider: provider || 'dropbox',
       synced: result.filesNew,
       skipped: result.filesSkipped,
       updated: result.filesUpdated,

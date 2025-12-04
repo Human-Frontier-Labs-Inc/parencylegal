@@ -44,6 +44,9 @@ interface Case {
   opposingParty: string | null;
   caseNumber: string | null;
   status: string;
+  cloudStorageProvider: string | null;
+  cloudFolderPath: string | null;
+  // Legacy field
   dropboxFolderPath: string | null;
   lastSyncedAt: string | null;
   documentCount?: number;
@@ -231,7 +234,7 @@ export default function CasesPage() {
                   <TableHead>Client</TableHead>
                   <TableHead>Case Number</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Dropbox</TableHead>
+                  <TableHead>Cloud Storage</TableHead>
                   <TableHead>Last Synced</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -262,10 +265,11 @@ export default function CasesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {caseItem.dropboxFolderPath ? (
+                      {(caseItem.cloudFolderPath || caseItem.dropboxFolderPath) ? (
                         <Badge variant="outline" className="font-mono text-xs">
                           <Folder className="mr-1 h-3 w-3" />
-                          Connected
+                          {caseItem.cloudStorageProvider === 'onedrive' ? 'OneDrive' :
+                           caseItem.cloudStorageProvider === 'dropbox' ? 'Dropbox' : 'Connected'}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">
