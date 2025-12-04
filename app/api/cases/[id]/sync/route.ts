@@ -9,8 +9,7 @@ import { db } from "@/db/db";
 import { casesTable } from "@/db/schema/cases-schema";
 import { eq, and } from "drizzle-orm";
 import { syncDropboxFolder } from "@/lib/dropbox/sync";
-// TODO: Import OneDrive sync when implemented
-// import { syncOneDriveFolder } from "@/lib/onedrive/sync";
+import { syncOneDriveFolder } from "@/lib/onedrive/sync";
 
 export async function POST(
   request: NextRequest,
@@ -49,16 +48,13 @@ export async function POST(
     }
 
     // Sync based on provider
+    let result;
     if (provider === 'onedrive') {
-      // TODO: Implement OneDrive sync
-      return NextResponse.json(
-        { error: "OneDrive sync not yet implemented" },
-        { status: 501 }
-      );
+      result = await syncOneDriveFolder(id, userId);
+    } else {
+      // Default to Dropbox sync (for legacy cases without cloudStorageProvider set)
+      result = await syncDropboxFolder(id, userId);
     }
-
-    // Default to Dropbox sync (for legacy cases without cloudStorageProvider set)
-    const result = await syncDropboxFolder(id, userId);
 
     // Note: lastSyncedAt is already updated in syncDropboxFolder
 
