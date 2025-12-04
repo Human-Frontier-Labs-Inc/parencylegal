@@ -92,132 +92,9 @@ export const deleteProfile = async (userId: string) => {
   }
 };
 
-//AVOID USING THIS FUNCTION AS WE WILL USE THE UPDATEPROFILE FUNCTION (USING THE CLERK ID) FIRST, THIS FUNCTION BELOW IS JUST A FALLBACK!
-
-//AVOID USING THIS FUNCTION AS WE WILL USE THE UPDATEPROFILE FUNCTION (USING THE CLERK ID) FIRST, THIS FUNCTION BELOW IS JUST A FALLBACK!
-
-export const updateProfileByWhopUserId = async (whopUserId: string, data: Partial<InsertProfile>) => {
-  try {
-    // Log the database operation for audit purposes
-    console.log(`Updating profile by Whop user ID: ${whopUserId}, with data:`, data);
-    
-    if (!whopUserId) {
-      throw new Error("Whop user ID is required");
-    }
-    
-    // First check if the profile exists
-    let existingProfile = null;
-    let retries = 0;
-    const maxRetries = 3;
-    
-    // Add retry logic for fetching profile
-    while (retries < maxRetries && !existingProfile) {
-      try {
-        existingProfile = await getProfileByWhopUserId(whopUserId);
-        if (!existingProfile) {
-          console.warn(`Attempt ${retries + 1}: No profile found with Whop user ID: ${whopUserId}`);
-          retries++;
-          if (retries < maxRetries) {
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
-          }
-        }
-      } catch (error) {
-        console.error(`Attempt ${retries + 1}: Error fetching profile:`, error);
-        retries++;
-        if (retries < maxRetries) {
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
-        } else {
-          throw error; // Rethrow after max retries
-        }
-      }
-    }
-    
-    if (!existingProfile) {
-      console.warn(`No profile found with Whop user ID: ${whopUserId} after ${maxRetries} attempts. Skipping update.`);
-      return null;
-    }
-    
-    // Then update the profile - critical part: use the Clerk user ID for the actual update
-    const clerkUserId = existingProfile.userId;
-    console.log(`Found profile with Clerk user ID: ${clerkUserId}, will use this for database update`);
-    
-    const [updatedProfile] = await db.update(profilesTable)
-      .set({
-        ...data,
-        updatedAt: new Date()
-      })
-      .where(eq(profilesTable.userId, clerkUserId))
-      .returning();
-    
-    if (!updatedProfile) {
-      console.warn(`Update operation completed but no profile was returned for Clerk user ID: ${clerkUserId}`);
-      return null;
-    } else {
-      console.log(`Successfully updated profile for Clerk user ID: ${clerkUserId} via Whop user ID: ${whopUserId}`, updatedProfile);
-    }
-    
-    return updatedProfile;
-  } catch (error) {
-    console.error("Error updating profile by Whop user ID:", error);
-    throw new Error(`Failed to update profile by Whop user ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
-
-export const getProfileByWhopUserId = async (whopUserId: string) => {
-  try {
-    if (!whopUserId) {
-      throw new Error("Whop user ID is required");
-    }
-    
-    console.log(`Looking up profile by Whop user ID: ${whopUserId}`);
-    
-    // Add retry logic with timeout
-    let retries = 0;
-    const maxRetries = 3;
-    
-    while (retries < maxRetries) {
-      try {
-        // Use a more reasonable timeout (10 seconds)
-        const profiles = await Promise.race([
-          db.select().from(profilesTable).where(eq(profilesTable.whopUserId, whopUserId)),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Database query timeout")), 10000)
-          )
-        ]) as SelectProfile[];
-        
-        const profile = profiles && profiles.length > 0 ? profiles[0] : null;
-        
-        if (!profile) {
-          console.warn(`No profile found with Whop user ID: ${whopUserId}`);
-        } else {
-          console.log(`Found profile for Whop user ID: ${whopUserId}`, profile);
-        }
-        
-        return profile;
-      } catch (error) {
-        console.error(`Attempt ${retries + 1}: Error getting profile by Whop user ID:`, error);
-        retries++;
-        
-        if (retries < maxRetries) {
-          // Wait before retrying (exponential backoff)
-          const backoffMs = 1000 * Math.pow(2, retries);
-          console.log(`Retrying in ${backoffMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
-        } else {
-          throw error; // Rethrow after max retries
-        }
-      }
-    }
-    
-    // This should never be reached due to the while loop logic
-    return null;
-  } catch (error) {
-    console.error("Error getting profile by Whop user ID:", error);
-    throw new Error(`Failed to get profile by Whop user ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
+// DEPRECATED: Whop integration functions removed - schema no longer contains whopUserId field
+// These functions were part of a previous payment provider integration and are no longer used.
+// If Whop integration is needed in the future, add whopUserId field to profiles-schema.ts first.
 
 // Enhanced function to get profile by email
 export const getProfileByUserEmail = async (email: string) => {
@@ -269,18 +146,18 @@ export const getUserPlanInfo = async (userId: string) => {
   try {
     console.log(`Getting plan information for user: ${userId}`);
     const profile = await getProfileByUserId(userId);
-    
+
     if (!profile) {
       console.warn(`No profile found for user: ${userId}`);
       return null;
     }
-    
+
     return {
       membership: profile.membership,
       planDuration: profile.planDuration || null,
       status: profile.status || null,
-      usageCredits: profile.usageCredits || null,
-      usedCredits: profile.usedCredits || null,
+      documentLimit: profile.documentLimit || null,
+      documentsProcessedThisMonth: profile.documentsProcessedThisMonth || 0,
       billingCycleStart: profile.billingCycleStart || null,
       billingCycleEnd: profile.billingCycleEnd || null,
       nextCreditRenewal: profile.nextCreditRenewal || null

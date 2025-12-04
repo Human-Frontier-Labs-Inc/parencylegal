@@ -54,14 +54,21 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Handle successful payment redirect after Stripe checkout
+  // IMPORTANT: Pass session_id to dashboard so popup can fetch plan details directly from Stripe
   if (req.nextUrl.pathname.startsWith('/dashboard') && req.nextUrl.search.includes('session_id')) {
     const { userId } = await auth();
 
     // If user is authenticated and just returned from Stripe checkout
     if (userId) {
-      console.log("User returned from Stripe checkout, cleaning URL");
+      const sessionId = req.nextUrl.searchParams.get('session_id');
+      console.log(`[MIDDLEWARE] User returned from Stripe checkout, session_id: ${sessionId}`);
+
       const dashboardUrl = new URL('/dashboard', req.url);
       dashboardUrl.searchParams.set('payment', 'success');
+      // Pass session_id so popup can fetch accurate plan info from Stripe
+      if (sessionId) {
+        dashboardUrl.searchParams.set('session_id', sessionId);
+      }
       dashboardUrl.searchParams.set('cb', Date.now().toString().slice(-4));
       return NextResponse.redirect(dashboardUrl);
     }
@@ -86,7 +93,11 @@ export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes - explicitly include all API paths
+    // Always run for API routes
     '/api/:path*',
+    // Explicitly include marketing pages that use auth()
+    '/pricing',
+    '/terms',
+    '/',
   ],
 };

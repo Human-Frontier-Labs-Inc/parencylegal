@@ -1,111 +1,156 @@
 /**
  * Payment Success Popup Component
  * Appears after a successful payment
- * Displays the user's new plan details and credits
+ * Displays the user's new plan details and document limits
  * Shows confetti celebration animation
+ *
+ * IMPORTANT: This component fetches plan details directly from Stripe
+ * using the session_id, rather than relying on database which may not
+ * be updated yet (webhook race condition).
  */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Check, Gift, Sparkles, RefreshCw } from "lucide-react";
+import { X, Check, FileText, Sparkles, RefreshCw, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 import { useRouter, useSearchParams } from "next/navigation";
 import confetti from 'canvas-confetti';
-import { getProfileByUserIdAction } from "@/actions/profiles-actions";
-import { useAuth } from "@clerk/nextjs";
 
 interface PaymentSuccessPopupProps {
   profile: SelectProfile;
 }
 
+// Plan configuration for display
+const PLAN_CONFIG = {
+  solo: {
+    name: "Solo",
+    documentLimit: 500,
+    seatsLimit: 1,
+    features: [
+      "Up to 50 active cases",
+      "500 documents/month",
+      "AI document classification",
+      "Dropbox sync",
+      "Email support"
+    ]
+  },
+  small_firm: {
+    name: "Small Firm",
+    documentLimit: 2000,
+    seatsLimit: 5,
+    features: [
+      "Unlimited active cases",
+      "2,000 documents/month",
+      "5 team member seats",
+      "Priority AI processing",
+      "Advanced analytics",
+      "Priority support"
+    ]
+  },
+  enterprise: {
+    name: "Enterprise",
+    documentLimit: 999999,
+    seatsLimit: 999,
+    features: [
+      "Unlimited active cases",
+      "Unlimited documents",
+      "Unlimited team members",
+      "Dedicated account manager",
+      "Custom integrations",
+      "SLA guarantees"
+    ]
+  },
+  trial: {
+    name: "Trial",
+    documentLimit: 100,
+    seatsLimit: 1,
+    features: [
+      "Limited cases",
+      "100 documents/month",
+      "Basic features"
+    ]
+  }
+} as const;
+
+type MembershipType = keyof typeof PLAN_CONFIG;
+
+interface StripeSessionDetails {
+  sessionId: string;
+  customerId: string;
+  subscriptionId: string;
+  membership: string;
+  productName: string;
+  priceId: string;
+  planDuration: string;
+  billingCycleEnd: string;
+}
+
 export default function PaymentSuccessPopup({ profile: initialProfile }: PaymentSuccessPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const confettiShown = useRef(false);
-  const [profile, setProfile] = useState(() => {
-    // Initialize with optimistic UI state if payment=success is in URL
-    if (typeof window !== 'undefined' && window.location.search.includes('payment=success')) {
-      return {
-        ...initialProfile,
-        membership: "pro",
-        usageCredits: 1000,
-        usedCredits: 0
-      };
-    }
-    return initialProfile;
-  });
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { userId } = useAuth();
-  
-  // Function to refresh profile data using server action
-  const refreshProfileData = async () => {
-    try {
-      setIsLoading(true);
 
-      if (!userId) {
-        console.error('Cannot refresh profile: No user ID available');
-        return;
-      }
-      
-      console.log('Refreshing profile data...');
-      
-      // Use the server action instead of fetch
-      const result = await getProfileByUserIdAction(userId);
-      
-      if (result.isSuccess && result.data) {
-        console.log('Fetched updated profile data:', result.data);
-        if (result.data.membership === 'pro') {
-          console.log('Pro membership confirmed in database!');
-          setProfile(result.data);
-          return true;
-        } else {
-          console.log('Database still shows membership as:', result.data.membership);
-          // If we've tried a few times but database still shows free, use optimistic UI
-          if (retryCount >= 2) {
-            console.log('Using optimistic UI for pro membership after multiple retries');
-            setProfile({
-              ...result.data,
-              membership: "pro",
-              usageCredits: 1000,
-              usedCredits: 0
-            });
-            return true;
-          }
-          return false;
-        }
-      } else {
-        console.error('Error fetching profile:', result.message);
+  // Plan details state - populated from Stripe session
+  const [planDetails, setPlanDetails] = useState<{
+    membership: MembershipType;
+    planDuration: string;
+    billingCycleEnd: string | null;
+  }>({
+    membership: (initialProfile.membership || "solo") as MembershipType,
+    planDuration: initialProfile.planDuration || "monthly",
+    billingCycleEnd: initialProfile.billingCycleEnd?.toISOString() || null
+  });
+
+  // Get plan configuration based on membership
+  const planConfig = PLAN_CONFIG[planDetails.membership] || PLAN_CONFIG.solo;
+
+  // Fetch plan details from Stripe session
+  const fetchStripeSessionDetails = async (sessionId: string): Promise<boolean> => {
+    try {
+      console.log(`[POPUP] Fetching Stripe session details for: ${sessionId}`);
+
+      const response = await fetch(`/api/stripe/session-details?session_id=${sessionId}`);
+
+      if (!response.ok) {
+        console.error(`[POPUP] Failed to fetch session details: ${response.status}`);
         return false;
       }
+
+      const data: StripeSessionDetails = await response.json();
+      console.log(`[POPUP] Got session details:`, data);
+
+      // Update plan details from Stripe (authoritative source)
+      setPlanDetails({
+        membership: (data.membership || "solo") as MembershipType,
+        planDuration: data.planDuration || "monthly",
+        billingCycleEnd: data.billingCycleEnd || null
+      });
+
+      return true;
     } catch (error) {
-      console.error('Error refreshing profile data:', error);
+      console.error("[POPUP] Error fetching session details:", error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  // Set this popup as the active popup when shown to prevent other popups
+
+  // Set this popup as the active popup when shown
   useEffect(() => {
     if (isOpen) {
       try {
-        // Set active popup flag in localStorage to prevent other popups from showing
         localStorage.setItem('active_popup', 'payment_success');
       } catch (error) {
         console.error('Error writing to localStorage:', error);
       }
     }
-    
-    // Clean up when this popup closes
+
     return () => {
       if (!isOpen) {
         try {
-          // Only clear if this popup was the active one
           const activePopup = localStorage.getItem('active_popup');
           if (activePopup === 'payment_success') {
             localStorage.removeItem('active_popup');
@@ -116,61 +161,71 @@ export default function PaymentSuccessPopup({ profile: initialProfile }: Payment
       }
     };
   }, [isOpen]);
-  
+
+  // Main effect - handle payment success
   useEffect(() => {
-    // Only run in browser environment
     if (typeof window === 'undefined') return;
-    
-    // Check if we have a payment success URL parameter
+
     const paymentStatus = searchParams.get('payment');
-    
+    const sessionId = searchParams.get('session_id');
+
     if (paymentStatus === 'success' && !confettiShown.current) {
-      console.log('Payment success detected, showing success popup');
-      
-      // Check if another popup is already active
+      console.log(`[POPUP] Payment success detected. session_id: ${sessionId}`);
+
       try {
-        // Payment success popup takes highest priority, so we'll force-close any other popup
         localStorage.setItem('active_popup', 'payment_success');
       } catch (error) {
         console.error('Error writing to localStorage:', error);
       }
-      
-      // First refresh the profile data to make sure we have the latest
-      const checkProfileUpdate = async () => {
-        const success = await refreshProfileData();
-        
-        // If successful or we've tried enough times, show popup
-        if (success || retryCount >= 3) {
-          // Show the popup with a small delay for animation
-          const timer = setTimeout(() => {
-            setIsOpen(true);
-            if (!confettiShown.current) {
-              triggerConfetti();
-              confettiShown.current = true;
-            }
-          }, 800);
-          
-          return () => clearTimeout(timer);
+
+      const initializePopup = async () => {
+        setIsLoading(true);
+
+        // If we have a session_id, fetch details directly from Stripe
+        // This is the RELIABLE way to get plan info (no webhook race condition)
+        if (sessionId) {
+          const success = await fetchStripeSessionDetails(sessionId);
+          if (success) {
+            console.log(`[POPUP] Successfully fetched plan details from Stripe`);
+          } else {
+            console.warn(`[POPUP] Could not fetch from Stripe, using profile data`);
+            // Fall back to profile data (may still be "trial" if webhook hasn't fired)
+            setPlanDetails({
+              membership: (initialProfile.membership !== "trial" ? initialProfile.membership : "solo") as MembershipType,
+              planDuration: initialProfile.planDuration || "monthly",
+              billingCycleEnd: initialProfile.billingCycleEnd?.toISOString() || null
+            });
+          }
         } else {
-          // Retry with exponential backoff
-          setRetryCount(prev => prev + 1);
-          const backoffMs = 2000 * Math.pow(1.5, retryCount);
-          console.log(`Will retry profile refresh in ${backoffMs}ms (attempt ${retryCount + 1})`);
-          
-          const timer = setTimeout(checkProfileUpdate, backoffMs);
-          return () => clearTimeout(timer);
+          console.warn(`[POPUP] No session_id in URL, using profile data`);
+          // No session_id - use profile data with optimistic fallback
+          setPlanDetails({
+            membership: (initialProfile.membership !== "trial" ? initialProfile.membership : "solo") as MembershipType,
+            planDuration: initialProfile.planDuration || "monthly",
+            billingCycleEnd: initialProfile.billingCycleEnd?.toISOString() || null
+          });
         }
+
+        setIsLoading(false);
+
+        // Show the popup with animation
+        setTimeout(() => {
+          setIsOpen(true);
+          if (!confettiShown.current) {
+            triggerConfetti();
+            confettiShown.current = true;
+          }
+        }, 500);
       };
-      
-      checkProfileUpdate();
+
+      initializePopup();
     }
-  }, [searchParams, userId, retryCount]);
-  
+  }, [searchParams, initialProfile]);
+
   // Handle closing the popup
   const handleClose = () => {
     setIsOpen(false);
-    
-    // Remove the active popup flag
+
     try {
       const activePopup = localStorage.getItem('active_popup');
       if (activePopup === 'payment_success') {
@@ -179,13 +234,12 @@ export default function PaymentSuccessPopup({ profile: initialProfile }: Payment
     } catch (error) {
       console.error('Error accessing localStorage:', error);
     }
-    
-    // Remove the payment parameter from URL for a cleaner experience
-    // Using replace with current pathname to remove query parameters
+
+    // Clean up URL - remove payment params
     const currentPath = window.location.pathname;
     router.replace(currentPath);
   };
-  
+
   // Trigger confetti animation
   const triggerConfetti = () => {
     try {
@@ -198,33 +252,24 @@ export default function PaymentSuccessPopup({ profile: initialProfile }: Payment
       console.error("Error triggering confetti:", error);
     }
   };
-  
-  // Get plan details - use optimistic UI if the database is lagging
-  const planType = profile.planDuration === "yearly" ? "Pro Yearly" : "Pro Monthly";
-  const creditCount = profile.membership === "pro" ? (profile.usageCredits ?? 1000) : 1000;
-  
+
+  // Get plan details for display
+  const planType = `${planConfig.name} ${planDetails.planDuration === "yearly" ? "Yearly" : "Monthly"}`;
+  const documentLimit = planConfig.documentLimit;
+  const seatsLimit = planConfig.seatsLimit;
+
   // Format renewal date for display
-  const formatDate = (date: Date | string | null) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString(undefined, {
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   };
-    
-  const nextCreditRenewal = profile.nextCreditRenewal 
-    ? formatDate(profile.nextCreditRenewal)
-    : "N/A";
-  
-  // Pro plan benefits
-  const planBenefits = [
-    `${creditCount} credits every billing cycle`,
-    "Access to all premium features",
-    "Priority support",
-    "Advanced analytics and exports"
-  ];
-  
+
+  const nextRenewal = formatDate(planDetails.billingCycleEnd);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {isOpen && <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-40" />}
@@ -243,84 +288,98 @@ export default function PaymentSuccessPopup({ profile: initialProfile }: Payment
           >
             <X size={16} />
           </button>
-          
-          {/* Header with success confirmation - now white instead of purple */}
-          <div className="px-6 pt-5 pb-3">
-            <div className="flex items-center justify-center mb-3">
-              <div className="bg-purple-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+
+          {isLoading ? (
+            // Loading state
+            <div className="px-6 py-12 flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+              <p className="text-gray-600">Loading your plan details...</p>
             </div>
-            <p className="text-sm text-gray-600 text-center">
-              Thank you for upgrading to {planType}
-            </p>
-          </div>
-          
-          {/* Content */}
-          <div className="px-6 py-5">
-            {/* Credit information */}
-            <div className="bg-purple-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-800 flex items-center">
-                  <Sparkles className="w-4 h-4 mr-2 text-purple-500" />
-                  Your Pro Plan is Active!
-                </h4>
-                
-                {/* Refresh button */}
+          ) : (
+            <>
+              {/* Header with success confirmation */}
+              <div className="px-6 pt-5 pb-3">
+                <div className="flex items-center justify-center mb-3">
+                  <div className="bg-purple-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+                </div>
+                <p className="text-sm text-gray-600 text-center">
+                  Thank you for subscribing to {planType}
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-5">
+                {/* Plan information */}
+                <div className="bg-purple-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-gray-800 flex items-center">
+                      <Sparkles className="w-4 h-4 mr-2 text-purple-500" />
+                      Your {planConfig.name} Plan is Active!
+                    </h4>
+                  </div>
+
+                  {/* Document limit */}
+                  <div className="flex justify-between items-center mt-3 bg-white rounded-md p-3 border border-purple-100">
+                    <div className="flex items-center">
+                      <FileText className="w-5 h-5 text-purple-500 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">Documents/month</span>
+                    </div>
+                    <span className="text-lg font-bold text-purple-600">
+                      {documentLimit >= 999999 ? "Unlimited" : documentLimit.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Seats limit */}
+                  {seatsLimit > 1 && (
+                    <div className="flex justify-between items-center mt-2 bg-white rounded-md p-3 border border-purple-100">
+                      <div className="flex items-center">
+                        <Users className="w-5 h-5 text-purple-500 mr-2" />
+                        <span className="text-sm font-medium text-gray-700">Team seats</span>
+                      </div>
+                      <span className="text-lg font-bold text-purple-600">
+                        {seatsLimit >= 999 ? "Unlimited" : seatsLimit}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mt-3 text-xs text-gray-600 bg-white p-2 rounded border border-purple-100">
+                    <span className="block font-medium mb-1">Next billing date</span>
+                    {nextRenewal}
+                  </div>
+                </div>
+
+                {/* What's included list */}
+                <div className="mb-5">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Your {planConfig.name} Plan Includes:</h5>
+                  <ul className="space-y-2.5">
+                    {planConfig.features.map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start text-sm text-gray-600"
+                      >
+                        <div className="rounded-full bg-purple-100 p-0.5 mr-2 mt-0.5 flex-shrink-0">
+                          <Check className="w-3 h-3 text-purple-600" />
+                        </div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={refreshProfileData}
-                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                  onClick={handleClose}
                 >
-                  <RefreshCw className={`w-4 h-4 text-purple-500 ${isLoading ? 'animate-spin' : ''}`} />
-                  <span className="sr-only">Refresh</span>
+                  Get Started
                 </Button>
               </div>
-              
-              <div className="flex justify-between items-center mt-3 bg-white rounded-md p-3 border border-purple-100">
-                <div className="flex items-center">
-                  <Gift className="w-5 h-5 text-purple-500 mr-2" />
-                  <span className="text-sm font-medium text-gray-700">Credits</span>
-                </div>
-                <span className="text-lg font-bold text-purple-600">{creditCount}</span>
-              </div>
-              
-              <div className="mt-3 text-xs text-gray-600 bg-white p-2 rounded border border-purple-100">
-                <span className="block font-medium mb-1">Credits renew on</span>
-                {nextCreditRenewal}
-              </div>
-            </div>
-            
-            {/* What's included list */}
-            <div className="mb-5">
-              <h5 className="text-sm font-medium text-gray-700 mb-2">Your Pro Plan Includes:</h5>
-              <ul className="space-y-2.5">
-                {planBenefits.map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start text-sm text-gray-600"
-                  >
-                    <div className="rounded-full bg-purple-100 p-0.5 mr-2 mt-0.5 flex-shrink-0">
-                      <Check className="w-3 h-3 text-purple-600" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <Button 
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-              onClick={handleClose}
-            >
-              Get Started with Pro
-            </Button>
-          </div>
+            </>
+          )}
         </motion.div>
       </DialogContent>
     </Dialog>
   );
-} 
+}
