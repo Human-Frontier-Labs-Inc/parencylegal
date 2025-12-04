@@ -31,6 +31,8 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +57,7 @@ export default function OnboardingWizard({
   const [isCreatingCase, setIsCreatingCase] = useState(false);
   const [caseCreated, setCaseCreated] = useState(false);
   const [newCaseId, setNewCaseId] = useState<string | null>(null);
+  const [caseError, setCaseError] = useState<string | null>(null);
 
   // Form state for case creation
   const [caseName, setCaseName] = useState("");
@@ -143,6 +146,8 @@ export default function OnboardingWizard({
     if (!caseName.trim()) return;
 
     setIsCreatingCase(true);
+    setCaseError(null);
+
     try {
       const response = await fetch("/api/cases", {
         method: "POST",
@@ -154,15 +159,42 @@ export default function OnboardingWizard({
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCaseCreated(true);
-        setNewCaseId(data.case?.id || data.id);
-        // Auto-advance after a moment
-        setTimeout(() => handleNext(), 1000);
+      if (!response.ok) {
+        // Handle specific error codes
+        if (response.status === 401) {
+          setCaseError("Your session has expired. Please refresh the page and sign in again.");
+          return;
+        }
+
+        if (response.status === 400) {
+          try {
+            const errorData = await response.json();
+            const message = errorData.details?.[0]?.message || errorData.error || "Invalid case details.";
+            setCaseError(message);
+          } catch {
+            setCaseError("Invalid case details. Please check your input.");
+          }
+          return;
+        }
+
+        if (response.status === 415) {
+          setCaseError("Request error. Please try again.");
+          return;
+        }
+
+        // Generic server error
+        setCaseError("Failed to create case. Please try again in a moment.");
+        return;
       }
+
+      const data = await response.json();
+      setCaseCreated(true);
+      setNewCaseId(data.id);
+      // Auto-advance after a moment
+      setTimeout(() => handleNext(), 1000);
     } catch (error) {
       console.error("Failed to create case:", error);
+      setCaseError("Network error. Please check your internet connection and try again.");
     } finally {
       setIsCreatingCase(false);
     }
@@ -410,6 +442,22 @@ export default function OnboardingWizard({
                   </div>
                 ) : (
                   <>
+                    {/* Error message display */}
+                    {caseError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-red-700">{caseError}</p>
+                          <button
+                            onClick={() => setCaseError(null)}
+                            className="text-xs text-red-600 hover:text-red-800 underline mt-1"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-4 mb-6">
                       <div>
                         <Label htmlFor="caseName">Case Name *</Label>
@@ -452,11 +500,17 @@ export default function OnboardingWizard({
                         onClick={handleCreateCase}
                         disabled={!caseName.trim() || isCreatingCase}
                         className="flex-1"
+                        variant={caseError ? "outline" : "default"}
                       >
                         {isCreatingCase ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Creating...
+                          </>
+                        ) : caseError ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Try Again
                           </>
                         ) : (
                           <>
