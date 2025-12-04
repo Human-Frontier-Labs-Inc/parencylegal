@@ -54,8 +54,11 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Handle successful payment redirect after Stripe checkout
-  // IMPORTANT: Pass session_id to dashboard so popup can fetch plan details directly from Stripe
-  if (req.nextUrl.pathname.startsWith('/dashboard') && req.nextUrl.search.includes('session_id')) {
+  // IMPORTANT: Only redirect if coming directly from Stripe (has session_id but NOT payment=success yet)
+  // This prevents redirect loops
+  if (req.nextUrl.pathname.startsWith('/dashboard') &&
+      req.nextUrl.search.includes('session_id') &&
+      !req.nextUrl.search.includes('payment=success')) {
     const { userId } = await auth();
 
     // If user is authenticated and just returned from Stripe checkout
@@ -72,6 +75,11 @@ export default clerkMiddleware(async (auth, req) => {
       dashboardUrl.searchParams.set('cb', Date.now().toString().slice(-4));
       return NextResponse.redirect(dashboardUrl);
     }
+  }
+
+  // If payment=success is already set, just let it through (no more redirects)
+  if (req.nextUrl.pathname.startsWith('/dashboard') && req.nextUrl.search.includes('payment=success')) {
+    return NextResponse.next();
   }
 
   const { userId, redirectToSignIn } = await auth();
