@@ -2,7 +2,7 @@
 
 /**
  * Case Settings Page
- * Allows editing case details and Dropbox folder configuration
+ * Allows editing case details and cloud storage folder configuration
  */
 
 import { useState, useEffect } from "react";
@@ -37,9 +37,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Loader2, Save, Trash2, FolderOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Trash2, Cloud } from "lucide-react";
 import { toast } from "sonner";
-import { FolderPicker } from "@/components/dropbox/folder-picker";
+import { UnifiedFolderPicker } from "@/components/cloud-storage";
+import { useCloudStorage } from "@/hooks/use-cloud-storage";
+import { CloudStorageProviderType } from "@/lib/cloud-storage/types";
 
 interface CaseData {
   id: string;
@@ -48,6 +50,10 @@ interface CaseData {
   opposingParty: string | null;
   caseNumber: string | null;
   status: string;
+  cloudStorageProvider: string | null;
+  cloudFolderPath: string | null;
+  cloudFolderId: string | null;
+  // Legacy fields
   dropboxFolderPath: string | null;
   dropboxFolderId: string | null;
   notes: string | null;
@@ -57,12 +63,12 @@ export default function CaseSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const caseId = params.id as string;
+  const { connectedProviders, loading: loadingConnections } = useCloudStorage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [caseData, setCaseData] = useState<CaseData | null>(null);
-  const [showFolderPicker, setShowFolderPicker] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -71,7 +77,9 @@ export default function CaseSettingsPage() {
   const [caseNumber, setCaseNumber] = useState("");
   const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
-  const [dropboxFolderPath, setDropboxFolderPath] = useState("");
+  const [cloudStorageProvider, setCloudStorageProvider] = useState<CloudStorageProviderType | null>(null);
+  const [cloudFolderPath, setCloudFolderPath] = useState("");
+  const [cloudFolderId, setCloudFolderId] = useState("");
 
   useEffect(() => {
     fetchCase();
@@ -99,7 +107,10 @@ export default function CaseSettingsPage() {
       setCaseNumber(data.caseNumber || "");
       setStatus(data.status || "active");
       setNotes(data.notes || "");
-      setDropboxFolderPath(data.dropboxFolderPath || "");
+      // Use new cloud storage fields, fallback to legacy dropbox fields
+      setCloudStorageProvider(data.cloudStorageProvider || (data.dropboxFolderPath ? "dropbox" : null));
+      setCloudFolderPath(data.cloudFolderPath || data.dropboxFolderPath || "");
+      setCloudFolderId(data.cloudFolderId || data.dropboxFolderId || "");
     } catch (error) {
       console.error("Error fetching case:", error);
       toast.error("Failed to load case");
@@ -126,7 +137,9 @@ export default function CaseSettingsPage() {
           caseNumber: caseNumber.trim() || null,
           status,
           notes: notes.trim() || null,
-          dropboxFolderPath: dropboxFolderPath || null,
+          cloudStorageProvider: cloudStorageProvider || null,
+          cloudFolderPath: cloudFolderPath || null,
+          cloudFolderId: cloudFolderId || null,
         }),
       });
 
@@ -166,9 +179,20 @@ export default function CaseSettingsPage() {
     }
   };
 
-  const handleFolderSelect = (path: string, id?: string) => {
-    setDropboxFolderPath(path);
-    setShowFolderPicker(false);
+  const handleFolderSelect = (selection: {
+    provider: CloudStorageProviderType;
+    folderId: string;
+    folderPath: string;
+  }) => {
+    setCloudStorageProvider(selection.provider);
+    setCloudFolderPath(selection.folderPath);
+    setCloudFolderId(selection.folderId);
+  };
+
+  const handleRemoveFolder = () => {
+    setCloudStorageProvider(null);
+    setCloudFolderPath("");
+    setCloudFolderId("");
   };
 
   if (loading) {
@@ -278,43 +302,63 @@ export default function CaseSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Dropbox Configuration */}
+      {/* Cloud Storage Configuration */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Dropbox Folder</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Cloud className="h-5 w-5" />
+            Cloud Storage Folder
+          </CardTitle>
           <CardDescription>
-            Link a Dropbox folder to sync documents
+            Link a folder from Dropbox or OneDrive to sync documents
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Input
-                  value={dropboxFolderPath}
-                  placeholder="No folder selected"
-                  readOnly
-                  className="bg-muted"
-                />
+            {cloudFolderPath ? (
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium flex items-center gap-2">
+                      Connected
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">
+                        {cloudStorageProvider}
+                      </span>
+                    </p>
+                    <p className="text-sm text-muted-foreground font-mono mt-1">
+                      {cloudFolderPath}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveFolder}
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowFolderPicker(true)}
-              >
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Browse
-              </Button>
-            </div>
-
-            {dropboxFolderPath && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => setDropboxFolderPath("")}
-              >
-                Remove folder connection
-              </Button>
+            ) : loadingConnections ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : connectedProviders.length === 0 ? (
+              <div className="text-center py-6">
+                <Cloud className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  No cloud storage connected. Connect Dropbox or OneDrive in Settings.
+                </p>
+                <Link href="/dashboard/settings">
+                  <Button variant="outline">Go to Settings</Button>
+                </Link>
+              </div>
+            ) : (
+              <UnifiedFolderPicker
+                value={cloudFolderPath ? { provider: cloudStorageProvider!, path: cloudFolderPath } : null}
+                onSelect={handleFolderSelect}
+                connections={connectedProviders}
+                placeholder="Select cloud folder..."
+              />
             )}
           </div>
         </CardContent>
@@ -377,14 +421,6 @@ export default function CaseSettingsPage() {
         </Button>
       </div>
 
-      {/* Folder Picker Modal */}
-      {showFolderPicker && (
-        <FolderPicker
-          onSelect={handleFolderSelect}
-          onCancel={() => setShowFolderPicker(false)}
-          currentPath={dropboxFolderPath}
-        />
-      )}
     </main>
   );
 }

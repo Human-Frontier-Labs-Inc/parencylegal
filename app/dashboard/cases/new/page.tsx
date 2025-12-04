@@ -2,7 +2,7 @@
 
 /**
  * New Case Page
- * Form to create a new case with optional Dropbox folder
+ * Form to create a new case with optional cloud storage folder
  */
 
 import { useState } from "react";
@@ -26,8 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Folder, Check } from "lucide-react";
-import { FolderPicker } from "@/components/dropbox/folder-picker";
+import { ArrowLeft, Loader2, Folder, Check, Cloud } from "lucide-react";
+import { UnifiedFolderPicker } from "@/components/cloud-storage";
+import { useCloudStorage } from "@/hooks/use-cloud-storage";
+import { CloudStorageProviderType } from "@/lib/cloud-storage/types";
+import { getProviderIcon } from "@/components/cloud-storage/provider-icons";
 
 interface FormData {
   name: string;
@@ -36,15 +39,16 @@ interface FormData {
   caseNumber: string;
   status: string;
   notes: string;
-  dropboxFolderPath: string;
-  dropboxFolderId: string;
+  cloudStorageProvider: CloudStorageProviderType | null;
+  cloudFolderPath: string;
+  cloudFolderId: string;
 }
 
 export default function NewCasePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const { connections, connectedProviders, loading: loadingConnections } = useCloudStorage();
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -53,8 +57,9 @@ export default function NewCasePage() {
     caseNumber: "",
     status: "active",
     notes: "",
-    dropboxFolderPath: "",
-    dropboxFolderId: "",
+    cloudStorageProvider: null,
+    cloudFolderPath: "",
+    cloudFolderId: "",
   });
 
   const handleChange = (
@@ -68,13 +73,17 @@ export default function NewCasePage() {
     setFormData((prev) => ({ ...prev, status: value }));
   };
 
-  const handleFolderSelect = (folderId: string, folderPath: string) => {
+  const handleFolderSelect = (selection: {
+    provider: CloudStorageProviderType;
+    folderId: string;
+    folderPath: string;
+  }) => {
     setFormData((prev) => ({
       ...prev,
-      dropboxFolderId: folderId,
-      dropboxFolderPath: folderPath,
+      cloudStorageProvider: selection.provider,
+      cloudFolderId: selection.folderId,
+      cloudFolderPath: selection.folderPath,
     }));
-    setShowFolderPicker(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,8 +108,9 @@ export default function NewCasePage() {
           caseNumber: formData.caseNumber || undefined,
           status: formData.status,
           notes: formData.notes || undefined,
-          dropboxFolderPath: formData.dropboxFolderPath || undefined,
-          dropboxFolderId: formData.dropboxFolderId || undefined,
+          cloudStorageProvider: formData.cloudStorageProvider || undefined,
+          cloudFolderPath: formData.cloudFolderPath || undefined,
+          cloudFolderId: formData.cloudFolderId || undefined,
         }),
       });
 
@@ -131,7 +141,7 @@ export default function NewCasePage() {
         </Link>
         <h1 className="text-3xl font-bold">Create New Case</h1>
         <p className="text-muted-foreground mt-1">
-          Set up a new case and optionally connect a Dropbox folder
+          Set up a new case and optionally connect a cloud storage folder
         </p>
       </div>
 
@@ -228,26 +238,31 @@ export default function NewCasePage() {
             </CardContent>
           </Card>
 
-          {/* Dropbox Connection */}
+          {/* Cloud Storage Connection */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Folder className="mr-2 h-5 w-5" />
-                Dropbox Folder
+                <Cloud className="mr-2 h-5 w-5" />
+                Cloud Storage Folder
               </CardTitle>
               <CardDescription>
-                Connect a Dropbox folder to automatically sync documents
+                Connect a folder from Dropbox or OneDrive to automatically sync documents
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {formData.dropboxFolderPath ? (
+              {formData.cloudFolderPath ? (
                 <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                   <div className="flex items-center">
                     <Check className="h-5 w-5 text-green-600 mr-3" />
                     <div>
-                      <p className="font-medium">Folder Selected</p>
+                      <p className="font-medium flex items-center gap-2">
+                        Folder Selected
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">
+                          {formData.cloudStorageProvider}
+                        </span>
+                      </p>
                       <p className="text-sm text-muted-foreground font-mono">
-                        {formData.dropboxFolderPath}
+                        {formData.cloudFolderPath}
                       </p>
                     </div>
                   </div>
@@ -255,25 +270,45 @@ export default function NewCasePage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowFolderPicker(true)}
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        cloudStorageProvider: null,
+                        cloudFolderPath: "",
+                        cloudFolderId: "",
+                      }))
+                    }
                   >
                     Change
                   </Button>
                 </div>
+              ) : loadingConnections ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : connectedProviders.length === 0 ? (
+                <div className="text-center py-6">
+                  <Cloud className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    No cloud storage connected. Connect Dropbox or OneDrive in Settings.
+                  </p>
+                  <Link href="/dashboard/settings">
+                    <Button type="button" variant="outline">
+                      Go to Settings
+                    </Button>
+                  </Link>
+                </div>
               ) : (
                 <div className="text-center py-6">
-                  <Folder className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <Cloud className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground mb-4">
                     No folder selected. You can add one later.
                   </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowFolderPicker(true)}
-                  >
-                    <Folder className="mr-2 h-4 w-4" />
-                    Select Dropbox Folder
-                  </Button>
+                  <UnifiedFolderPicker
+                    onSelect={handleFolderSelect}
+                    connections={connectedProviders}
+                    placeholder="Select cloud folder..."
+                  />
                 </div>
               )}
             </CardContent>
@@ -303,13 +338,6 @@ export default function NewCasePage() {
         </div>
       </form>
 
-      {/* Folder Picker Dialog */}
-      {showFolderPicker && (
-        <FolderPicker
-          onSelect={handleFolderSelect}
-          onCancel={() => setShowFolderPicker(false)}
-        />
-      )}
     </main>
   );
 }
