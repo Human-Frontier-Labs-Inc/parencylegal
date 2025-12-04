@@ -8,13 +8,18 @@ import { z } from 'zod'
 // Validation schema for updating a case
 const updateCaseSchema = z.object({
   name: z.string().min(1).optional(),
-  clientName: z.string().optional(),
-  opposingParty: z.string().optional(),
-  caseNumber: z.string().optional(),
+  clientName: z.string().nullable().optional(),
+  opposingParty: z.string().nullable().optional(),
+  caseNumber: z.string().nullable().optional(),
   status: z.enum(['active', 'discovery', 'trial_prep', 'settlement', 'closed']).optional(),
-  dropboxFolderPath: z.string().optional(),
-  dropboxFolderId: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
+  // Cloud storage fields (provider-agnostic)
+  cloudStorageProvider: z.enum(['dropbox', 'onedrive']).nullable().optional(),
+  cloudFolderPath: z.string().nullable().optional(),
+  cloudFolderId: z.string().nullable().optional(),
+  // Legacy Dropbox fields (for backward compatibility)
+  dropboxFolderPath: z.string().nullable().optional(),
+  dropboxFolderId: z.string().nullable().optional(),
   // Explicitly exclude userId from updates
   userId: z.never().optional(),
 })
