@@ -12,10 +12,15 @@ export const casesTable = pgTable("cases", {
   caseNumber: text("case_number"), // Court case number
   status: text("status").notNull().default("active"), // active, discovery, trial_prep, settlement, closed
 
-  // Dropbox integration
-  dropboxFolderPath: text("dropbox_folder_path"), // e.g., "/Clients/Smith/Divorce"
-  dropboxFolderId: text("dropbox_folder_id"), // Dropbox folder ID
+  // Cloud storage integration (provider-agnostic)
+  cloudStorageProvider: text("cloud_storage_provider"), // 'dropbox' | 'onedrive' | null
+  cloudFolderPath: text("cloud_folder_path"), // e.g., "/Clients/Smith/Divorce"
+  cloudFolderId: text("cloud_folder_id"), // Provider-specific folder ID
   lastSyncedAt: timestamp("last_synced_at"),
+
+  // Legacy Dropbox fields (for backward compatibility)
+  dropboxFolderPath: text("dropbox_folder_path"), // @deprecated - use cloudFolderPath
+  dropboxFolderId: text("dropbox_folder_id"), // @deprecated - use cloudFolderId
 
   // Metadata
   notes: text("notes"),

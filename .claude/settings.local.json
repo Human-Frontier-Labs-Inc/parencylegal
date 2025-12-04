@@ -67,7 +67,8 @@
       "Bash(stripe webhook_endpoints:*)",
       "Bash(stripe products list:*)",
       "Bash(stripe products update:*)",
-      "Bash(vercel domains:*)"
+      "Bash(vercel domains:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   },
