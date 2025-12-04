@@ -2,7 +2,7 @@
 
 /**
  * Case Detail Page
- * Shows case information, documents, and Dropbox sync status
+ * Shows case information, documents, and cloud storage sync status
  */
 
 import { useState, useEffect } from "react";
@@ -45,6 +45,7 @@ import {
   Calendar,
   Search,
   Download,
+  Cloud,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
@@ -76,6 +77,10 @@ interface Case {
   opposingParty: string | null;
   caseNumber: string | null;
   status: string;
+  cloudStorageProvider: string | null;
+  cloudFolderPath: string | null;
+  cloudFolderId: string | null;
+  // Legacy fields
   dropboxFolderPath: string | null;
   dropboxFolderId: string | null;
   lastSyncedAt: string | null;
@@ -495,7 +500,7 @@ export default function CaseDetailPage() {
               {reprocessing ? "Reprocessing..." : "Reprocess All"}
             </Button>
           )}
-          {caseData.dropboxFolderPath && (
+          {(caseData.cloudFolderPath || caseData.dropboxFolderPath) && (
             <Button
               variant="outline"
               onClick={handleSync}
@@ -506,7 +511,7 @@ export default function CaseDetailPage() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              Sync Dropbox
+              Sync {caseData.cloudStorageProvider === 'onedrive' ? 'OneDrive' : 'Cloud Storage'}
             </Button>
           )}
           <Link href={`/dashboard/cases/${caseId}/timeline`}>
@@ -632,7 +637,7 @@ export default function CaseDetailPage() {
             </span>
           </TabsTrigger>
           <TabsTrigger value="info">Case Info</TabsTrigger>
-          <TabsTrigger value="dropbox">Dropbox</TabsTrigger>
+          <TabsTrigger value="cloud-storage">Cloud Storage</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents">
@@ -640,7 +645,7 @@ export default function CaseDetailPage() {
             <CardHeader>
               <CardTitle>Documents</CardTitle>
               <CardDescription>
-                All documents synced from Dropbox with AI classification
+                All documents synced from cloud storage with AI classification
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -649,11 +654,11 @@ export default function CaseDetailPage() {
                   <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No documents yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    {caseData.dropboxFolderPath
-                      ? "Sync from Dropbox to import documents"
-                      : "Connect a Dropbox folder to start importing documents"}
+                    {(caseData.cloudFolderPath || caseData.dropboxFolderPath)
+                      ? "Sync from cloud storage to import documents"
+                      : "Connect a cloud storage folder to start importing documents"}
                   </p>
-                  {caseData.dropboxFolderPath ? (
+                  {(caseData.cloudFolderPath || caseData.dropboxFolderPath) ? (
                     <Button onClick={handleSync} disabled={syncing}>
                       {syncing ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -665,8 +670,8 @@ export default function CaseDetailPage() {
                   ) : (
                     <Link href={`/dashboard/cases/${caseId}/settings`}>
                       <Button>
-                        <Folder className="mr-2 h-4 w-4" />
-                        Connect Dropbox
+                        <Cloud className="mr-2 h-4 w-4" />
+                        Connect Cloud Storage
                       </Button>
                     </Link>
                   )}
@@ -863,23 +868,31 @@ export default function CaseDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="dropbox">
+        <TabsContent value="cloud-storage">
           <Card>
             <CardHeader>
-              <CardTitle>Dropbox Integration</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="h-5 w-5" />
+                Cloud Storage Integration
+              </CardTitle>
               <CardDescription>
-                Manage your Dropbox folder connection for this case
+                Manage your cloud storage folder connection for this case
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {caseData.dropboxFolderPath ? (
+              {(caseData.cloudFolderPath || caseData.dropboxFolderPath) ? (
                 <div className="space-y-4">
                   <div className="flex items-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                     <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
                     <div>
-                      <p className="font-medium">Dropbox Connected</p>
+                      <p className="font-medium flex items-center gap-2">
+                        Connected
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">
+                          {caseData.cloudStorageProvider || 'dropbox'}
+                        </span>
+                      </p>
                       <p className="text-sm text-muted-foreground font-mono">
-                        {caseData.dropboxFolderPath}
+                        {caseData.cloudFolderPath || caseData.dropboxFolderPath}
                       </p>
                     </div>
                   </div>
@@ -915,17 +928,17 @@ export default function CaseDetailPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Folder className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <Cloud className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">
-                    No Dropbox folder connected
+                    No cloud storage folder connected
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    Connect a Dropbox folder to automatically sync documents
+                    Connect a Dropbox or OneDrive folder to automatically sync documents
                   </p>
                   <Link href={`/dashboard/cases/${caseId}/settings`}>
                     <Button>
-                      <Folder className="mr-2 h-4 w-4" />
-                      Connect Dropbox Folder
+                      <Cloud className="mr-2 h-4 w-4" />
+                      Connect Cloud Storage
                     </Button>
                   </Link>
                 </div>
