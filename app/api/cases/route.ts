@@ -12,9 +12,14 @@ const createCaseSchema = z.object({
   opposingParty: z.string().optional(),
   caseNumber: z.string().optional(),
   status: z.enum(['active', 'discovery', 'trial_prep', 'settlement', 'closed']).optional().default('active'),
+  notes: z.string().optional(),
+  // Cloud storage fields (provider-agnostic)
+  cloudStorageProvider: z.enum(['dropbox', 'onedrive']).optional(),
+  cloudFolderPath: z.string().optional(),
+  cloudFolderId: z.string().optional(),
+  // Legacy Dropbox fields (for backward compatibility)
   dropboxFolderPath: z.string().optional(),
   dropboxFolderId: z.string().optional(),
-  notes: z.string().optional(),
 })
 
 // GET /api/cases - List all cases for authenticated user
