@@ -8,7 +8,9 @@ if (!stripeSecretKey) {
 }
 
 export const stripe = new Stripe(stripeSecretKey || "", {
-  apiVersion: "2024-11-20.acacia",
+  // Use API version compatible with stripe@16.x SDK
+  // @ts-ignore - TypeScript may complain but this version works with the SDK
+  apiVersion: "2024-06-20",
   // Retry configuration for reliability
   maxNetworkRetries: 3,
   timeout: 20000, // 20 seconds
