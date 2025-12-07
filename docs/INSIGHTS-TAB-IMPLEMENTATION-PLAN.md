@@ -12,7 +12,7 @@ Redesign the Insights tab to allow attorneys to upload RFP/discovery request PDF
 1. **Create `RfpInputPanel` component**
    - Two-column layout: PDF upload | Text paste
    - Drag-and-drop PDF upload zone
-   - Large textarea for pasting requests
+   - Large textarea for pasting reclaudequests
    - "Analyze Requests" button
    - Loading state while processing
 
