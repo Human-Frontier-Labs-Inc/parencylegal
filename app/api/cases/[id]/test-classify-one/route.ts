@@ -8,26 +8,16 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/db';
 import { casesTable, documentsTable } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { downloadFile } from '@/lib/storage';
 
 // Allow both GET and POST for easy browser testing
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   return handleRequest(request, params);
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   return handleRequest(request, params);
 }
 
@@ -86,16 +76,27 @@ async function handleRequest(
       });
     }
     log(`Document found: ${doc.fileName} (${doc.id})`);
-    log(`Storage path: ${doc.storagePath}`);
+    log(`Storage URL: ${doc.storageUrl || doc.storagePath}`);
     log(`File type: ${doc.fileType}`);
 
-    // Try to download from Supabase
-    log('Attempting to download from Supabase storage...');
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('case-documents')
-      .download(doc.storagePath);
+    // Try to download from Vercel Blob
+    const fileUrl = doc.storageUrl || doc.storagePath;
+    if (!fileUrl) {
+      log('No storage URL available');
+      return NextResponse.json({
+        success: false,
+        error: 'No storage URL available',
+        step: 'download',
+        logs,
+      });
+    }
 
-    if (downloadError) {
+    log('Attempting to download from Vercel Blob...');
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = await downloadFile(fileUrl);
+      log(`Downloaded successfully: ${fileBuffer.length} bytes`);
+    } catch (downloadError: any) {
       log(`Download ERROR: ${downloadError.message}`);
       return NextResponse.json({
         success: false,
@@ -104,23 +105,6 @@ async function handleRequest(
         logs,
       });
     }
-
-    if (!fileData) {
-      log('Download returned null data');
-      return NextResponse.json({
-        success: false,
-        error: 'Download returned null',
-        step: 'download',
-        logs,
-      });
-    }
-
-    const fileSize = fileData.size;
-    log(`Downloaded successfully: ${fileSize} bytes`);
-
-    // Convert to buffer
-    const fileBuffer = Buffer.from(await fileData.arrayBuffer());
-    log(`Buffer created: ${fileBuffer.length} bytes`);
 
     // Try text extraction
     log('Attempting text extraction...');

@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { X, Calendar, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 import Link from "next/link";
 

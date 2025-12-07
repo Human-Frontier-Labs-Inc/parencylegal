@@ -8,15 +8,10 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db/db";
 import { casesTable, documentsTable, documentChunksTable } from "@/db/schema";
 import { eq, and, notInArray } from "drizzle-orm";
-import { createClient } from "@supabase/supabase-js";
+import { downloadFile } from "@/lib/storage";
 import { chunkDocument, extractPageNumbers, addPageNumbersToChunks } from "@/lib/ai/chunking";
 import { storeChunksWithEmbeddings } from "@/lib/ai/embeddings";
 import { extractText } from "@/lib/ai/classification";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(
   request: NextRequest,
@@ -78,18 +73,22 @@ export async function POST(
 
     for (const doc of docsToEmbed) {
       try {
-        // Download file from storage
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from("case-documents")
-          .download(doc.storagePath);
-
-        if (downloadError || !fileData) {
-          errors.push(`${doc.fileName}: Failed to download`);
+        // Download file from Vercel Blob
+        const fileUrl = doc.storageUrl || doc.storagePath;
+        if (!fileUrl) {
+          errors.push(`${doc.fileName}: No storage URL`);
           failed++;
           continue;
         }
 
-        const fileBuffer = Buffer.from(await fileData.arrayBuffer());
+        let fileBuffer: Buffer;
+        try {
+          fileBuffer = await downloadFile(fileUrl);
+        } catch {
+          errors.push(`${doc.fileName}: Failed to download`);
+          failed++;
+          continue;
+        }
         let mimeType = doc.fileType || "application/pdf";
         if (!mimeType.includes("/")) {
           mimeType = `application/${mimeType}`;

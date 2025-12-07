@@ -37,7 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Loader2, Save, Trash2, Cloud } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Trash2, Cloud, Users, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedFolderPicker } from "@/components/cloud-storage";
 import { useCloudStorage } from "@/hooks/use-cloud-storage";
@@ -57,6 +57,11 @@ interface CaseData {
   dropboxFolderPath: string | null;
   dropboxFolderId: string | null;
   notes: string | null;
+  // Parent sync fields
+  parentSyncToken: string | null;
+  parentSyncConnectedAt: string | null;
+  parentName: string | null;
+  parentEmail: string | null;
 }
 
 export default function CaseSettingsPage() {
@@ -80,6 +85,15 @@ export default function CaseSettingsPage() {
   const [cloudStorageProvider, setCloudStorageProvider] = useState<CloudStorageProviderType | null>(null);
   const [cloudFolderPath, setCloudFolderPath] = useState("");
   const [cloudFolderId, setCloudFolderId] = useState("");
+
+  // Parent sync state
+  const [parentSyncToken, setParentSyncToken] = useState("");
+  const [parentSyncTokenInput, setParentSyncTokenInput] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentSyncConnectedAt, setParentSyncConnectedAt] = useState<string | null>(null);
+  const [connectingParent, setConnectingParent] = useState(false);
+  const [disconnectingParent, setDisconnectingParent] = useState(false);
 
   useEffect(() => {
     fetchCase();
@@ -111,6 +125,11 @@ export default function CaseSettingsPage() {
       setCloudStorageProvider(data.cloudStorageProvider || (data.dropboxFolderPath ? "dropbox" : null));
       setCloudFolderPath(data.cloudFolderPath || data.dropboxFolderPath || "");
       setCloudFolderId(data.cloudFolderId || data.dropboxFolderId || "");
+      // Parent sync fields
+      setParentSyncToken(data.parentSyncToken || "");
+      setParentName(data.parentName || "");
+      setParentEmail(data.parentEmail || "");
+      setParentSyncConnectedAt(data.parentSyncConnectedAt || null);
     } catch (error) {
       console.error("Error fetching case:", error);
       toast.error("Failed to load case");
@@ -193,6 +212,91 @@ export default function CaseSettingsPage() {
     setCloudStorageProvider(null);
     setCloudFolderPath("");
     setCloudFolderId("");
+  };
+
+  const handleConnectParent = async () => {
+    if (!parentSyncTokenInput.trim()) {
+      toast.error("Please enter a token");
+      return;
+    }
+
+    setConnectingParent(true);
+    try {
+      // Validate the token by calling the parent API
+      const response = await fetch("/api/cases/validate-parent-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: parentSyncTokenInput.trim() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Invalid or revoked token");
+        return;
+      }
+
+      const data = await response.json();
+
+      // Save to case
+      const saveResponse = await fetch(`/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parentSyncToken: parentSyncTokenInput.trim(),
+          parentSyncConnectedAt: new Date().toISOString(),
+          parentName: data.parent.name,
+          parentEmail: data.parent.email,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save connection");
+      }
+
+      // Update local state
+      setParentSyncToken(parentSyncTokenInput.trim());
+      setParentName(data.parent.name);
+      setParentEmail(data.parent.email);
+      setParentSyncConnectedAt(new Date().toISOString());
+      setParentSyncTokenInput("");
+      toast.success(`Connected to ${data.parent.name}`);
+    } catch (error: any) {
+      console.error("Error connecting to parent:", error);
+      toast.error(error.message || "Failed to connect");
+    } finally {
+      setConnectingParent(false);
+    }
+  };
+
+  const handleDisconnectParent = async () => {
+    setDisconnectingParent(true);
+    try {
+      const response = await fetch(`/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parentSyncToken: null,
+          parentSyncConnectedAt: null,
+          parentName: null,
+          parentEmail: null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to disconnect");
+      }
+
+      setParentSyncToken("");
+      setParentName("");
+      setParentEmail("");
+      setParentSyncConnectedAt(null);
+      toast.success("Disconnected from parent");
+    } catch (error: any) {
+      console.error("Error disconnecting:", error);
+      toast.error(error.message || "Failed to disconnect");
+    } finally {
+      setDisconnectingParent(false);
+    }
   };
 
   if (loading) {
@@ -361,6 +465,104 @@ export default function CaseSettingsPage() {
               />
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* CoParency Parent Integration */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            CoParency Parent Sync
+          </CardTitle>
+          <CardDescription>
+            Connect to a parent&apos;s CoParency account to access their shared data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {parentSyncToken ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Connected</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {parentName} ({parentEmail})
+                      </p>
+                      {parentSyncConnectedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Connected {new Date(parentSyncConnectedAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={disconnectingParent}
+                      >
+                        {disconnectingParent ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Disconnect"
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Disconnect from parent?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You will no longer be able to access {parentName}&apos;s shared data.
+                          You can reconnect later with a new token.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDisconnectParent}>
+                          Disconnect
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                View shared data in the &quot;Parent Sync&quot; tab on the case detail page.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="parentToken">Parent Access Token</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="parentToken"
+                    value={parentSyncTokenInput}
+                    onChange={(e) => setParentSyncTokenInput(e.target.value)}
+                    placeholder="Paste the 64-character token from the parent"
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    onClick={handleConnectParent}
+                    disabled={connectingParent || !parentSyncTokenInput.trim()}
+                  >
+                    {connectingParent ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Connect
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ask the parent to generate an access token from their CoParency account
+                  at Settings &rarr; Lawyer Access.
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

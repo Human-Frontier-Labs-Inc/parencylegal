@@ -29,6 +29,12 @@ export const casesTable = pgTable("cases", {
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date()),
+
+  // CoParency Parent Sync integration
+  parentSyncToken: text("parent_sync_token"), // Token from parent app
+  parentSyncConnectedAt: timestamp("parent_sync_connected_at"), // When connection was established
+  parentName: text("parent_name"), // Cached parent name for display
+  parentEmail: text("parent_email"), // Cached parent email for display
 }, (table) => {
   return {
     // Indexes for better query performance

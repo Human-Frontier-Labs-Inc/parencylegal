@@ -10,14 +10,8 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getOnedriveConnection, isTokenExpired, updateOnedriveTokens } from '@/db/queries/onedrive-queries';
 import { OneDriveProvider } from '@/lib/cloud-storage/providers/onedrive';
 import { CloudStorageFile } from '@/lib/cloud-storage/types';
-import { createClient } from '@supabase/supabase-js';
+import { uploadDocument } from '@/lib/storage';
 import { addToQueue } from '@/lib/queue/document-processing';
-
-// Initialize Supabase client for storage
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Initialize OneDrive provider
 const onedriveProvider = new OneDriveProvider();
@@ -229,24 +223,10 @@ async function downloadAndStoreFile(
   // Download file from OneDrive
   const fileBuffer = await onedriveProvider.downloadFile(accessToken, file.id);
 
-  // Generate storage path
-  const storagePath = `documents/${caseId}/${Date.now()}-${file.name}`;
-
-  // Upload to Supabase Storage
-  console.log(`[OneDrive Sync] Uploading to Supabase: ${storagePath}`);
-  const { error: uploadError } = await supabase.storage
-    .from('case-documents')
-    .upload(storagePath, fileBuffer, {
-      contentType: file.mimeType || 'application/octet-stream',
-      upsert: false,
-    });
-
-  if (uploadError) {
-    console.error(`[OneDrive Sync] Supabase upload error:`, uploadError);
-    throw new Error(`Failed to upload file: ${uploadError.message}`);
-  }
-
-  console.log(`[OneDrive Sync] Supabase upload success: ${storagePath}`);
+  // Upload to Vercel Blob Storage
+  console.log(`[OneDrive Sync] Uploading to Vercel Blob: ${file.name}`);
+  const storageUrl = await uploadDocument(caseId, file.name, fileBuffer, file.mimeType || 'application/octet-stream');
+  console.log(`[OneDrive Sync] Vercel Blob upload success: ${storageUrl}`);
 
   // Create document record
   const [document] = await db
@@ -255,7 +235,7 @@ async function downloadAndStoreFile(
       caseId,
       userId,
       fileName: file.name,
-      storagePath,
+      storageUrl, // Vercel Blob URL
       fileSize: file.size,
       fileType: getFileExtension(file.name),
       dropboxPath: file.path, // Reusing field for OneDrive path
@@ -271,7 +251,7 @@ async function downloadAndStoreFile(
 
   return {
     documentId: document.id,
-    storagePath,
+    storagePath: storageUrl,
   };
 }
 

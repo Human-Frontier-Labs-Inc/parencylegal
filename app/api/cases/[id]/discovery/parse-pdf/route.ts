@@ -46,13 +46,12 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Extract text from PDF using pdf-parse
+    // Extract text from PDF using unpdf
     let pdfText = "";
     try {
-      // Dynamic import to avoid issues with pdf-parse in edge runtime
-      const pdfParse = (await import("pdf-parse")).default;
-      const pdfData = await pdfParse(buffer);
-      pdfText = pdfData.text;
+      const { extractText } = await import("unpdf");
+      const result = await extractText(buffer);
+      pdfText = result.text;
     } catch (pdfError: any) {
       console.error("PDF parsing error:", pdfError);
       return NextResponse.json(

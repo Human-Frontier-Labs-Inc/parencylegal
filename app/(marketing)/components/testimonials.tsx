@@ -8,7 +8,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, Quote } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const testimonials = [
   {

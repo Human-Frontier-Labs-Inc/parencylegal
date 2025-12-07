@@ -46,6 +46,11 @@ import {
   Search,
   Download,
   Cloud,
+  Users,
+  DollarSign,
+  MessageSquare,
+  Shield,
+  Filter,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CaseChat } from "@/components/chat/case-chat";
@@ -69,6 +74,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MissingDocumentsEmail from "@/components/documents/missing-documents-email";
+import { ParentSyncTab } from "@/components/parent-sync/parent-sync-tab";
 
 interface Case {
   id: string;
@@ -87,6 +93,11 @@ interface Case {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  // Parent sync fields
+  parentSyncToken: string | null;
+  parentSyncConnectedAt: string | null;
+  parentName: string | null;
+  parentEmail: string | null;
 }
 
 interface Document {
@@ -638,6 +649,14 @@ export default function CaseDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="info">Case Info</TabsTrigger>
           <TabsTrigger value="cloud-storage">Cloud Storage</TabsTrigger>
+          {caseData.parentSyncToken && (
+            <TabsTrigger value="parent-sync">
+              <span className="flex items-center gap-1">
+                Parent Sync
+                <Users className="h-3 w-3" />
+              </span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="documents">
@@ -946,6 +965,18 @@ export default function CaseDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {caseData.parentSyncToken && (
+          <TabsContent value="parent-sync">
+            <ParentSyncTab
+              caseId={caseId}
+              parentSyncToken={caseData.parentSyncToken}
+              parentName={caseData.parentName}
+              parentEmail={caseData.parentEmail}
+              parentSyncConnectedAt={caseData.parentSyncConnectedAt}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Document Summary Dialog - Professional Version */}

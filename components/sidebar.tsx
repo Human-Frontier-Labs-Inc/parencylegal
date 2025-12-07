@@ -10,7 +10,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 // TODO: Re-enable when credit system is implemented in Phase 2+
 // import { CreditUsageDisplay } from "@/components/credit-usage-display";

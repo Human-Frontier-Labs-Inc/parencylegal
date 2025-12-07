@@ -16,17 +16,13 @@ import { classifyAndStore } from '@/lib/ai/classification';
 const MAX_DOCS_PER_REQUEST = 5;
 
 // GET handler for browser testing
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   return handleAnalyze(request, params);
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   return handleAnalyze(request, params);
 }
 

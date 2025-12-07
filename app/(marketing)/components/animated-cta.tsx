@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SignedOut } from "@clerk/clerk-react";
 
 export default function AnimatedCTA() {

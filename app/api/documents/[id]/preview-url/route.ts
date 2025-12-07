@@ -12,14 +12,7 @@ import { db } from "@/db/db";
 import { documentsTable } from "@/db/schema/documents-schema";
 import { casesTable } from "@/db/schema/cases-schema";
 import { eq, and } from "drizzle-orm";
-import { createClient } from "@supabase/supabase-js";
 import { getAccessTokenForUser } from "@/lib/dropbox/folders";
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function GET(
   request: NextRequest,
@@ -58,34 +51,22 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // Option 1: If we have a storageUrl, use it
+    // Option 1: If we have a storageUrl (Vercel Blob), use it directly (public URL)
     if (document.storageUrl) {
       return NextResponse.json({
         url: document.storageUrl,
-        source: "storage_url",
-        expiresIn: null // Permanent URL
+        source: "vercel_blob",
+        expiresIn: null // Vercel Blob URLs are permanent
       });
     }
 
-    // Option 2: Try to get signed URL from Supabase Storage
-    if (document.storagePath) {
-      try {
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from("case-documents")
-          .createSignedUrl(document.storagePath, 3600); // 1 hour expiry
-
-        if (!signedUrlError && signedUrlData?.signedUrl) {
-          return NextResponse.json({
-            url: signedUrlData.signedUrl,
-            source: "supabase_signed",
-            expiresIn: 3600
-          });
-        }
-
-        console.log("[PreviewURL] Supabase signed URL failed:", signedUrlError?.message);
-      } catch (supabaseError) {
-        console.error("[PreviewURL] Supabase error:", supabaseError);
-      }
+    // Option 2: Legacy storagePath - treat as URL if it looks like one
+    if (document.storagePath && document.storagePath.startsWith('http')) {
+      return NextResponse.json({
+        url: document.storagePath,
+        source: "storage_url",
+        expiresIn: null
+      });
     }
 
     // Option 3: Get temporary link from Dropbox

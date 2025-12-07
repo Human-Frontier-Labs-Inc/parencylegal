@@ -11,7 +11,7 @@ import { X, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 
 interface UpgradePlanPopupProps {

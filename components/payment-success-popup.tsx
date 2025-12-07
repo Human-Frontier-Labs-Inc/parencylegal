@@ -14,7 +14,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Check, FileText, Sparkles, RefreshCw, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 import { useRouter, useSearchParams } from "next/navigation";
 import confetti from 'canvas-confetti';

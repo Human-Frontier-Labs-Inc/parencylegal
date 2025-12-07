@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   console.log("[WEBHOOK] ====== Stripe webhook received ======");
 
   const body = await req.text();
-  const sig = headers().get("Stripe-Signature") as string;
+  const sig = (await headers()).get("Stripe-Signature") as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event: Stripe.Event;
 

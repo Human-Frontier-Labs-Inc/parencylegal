@@ -8,14 +8,8 @@ import { db } from '@/db/db';
 import { documentsTable, casesTable, syncHistoryTable } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getAccessTokenForUser, listDropboxFolders, type DropboxFile } from './folders';
-import { createClient } from '@supabase/supabase-js';
+import { uploadDocument } from '@/lib/storage';
 import { addToQueue } from '@/lib/queue/document-processing';
-
-// Initialize Supabase client for storage
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Types
 export interface SyncResult {
@@ -265,25 +259,12 @@ export async function downloadAndStoreFile(
   }
 
   const fileBlob = await downloadResponse.arrayBuffer();
-
-  // Generate storage path
   const fileName = fileMetadata.name;
-  const storagePath = `documents/${caseId}/${Date.now()}-${fileName}`;
 
-  // Upload to Supabase Storage
-  console.log(`[Sync] Uploading to Supabase: ${storagePath}`);
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('case-documents')
-    .upload(storagePath, fileBlob, {
-      contentType: getMimeType(fileName),
-      upsert: false,
-    });
-
-  if (uploadError) {
-    console.error(`[Sync] Supabase upload error:`, uploadError);
-    throw new Error(`Failed to upload file: ${uploadError.message}`);
-  }
-  console.log(`[Sync] Supabase upload success: ${storagePath}`);
+  // Upload to Vercel Blob Storage
+  console.log(`[Sync] Uploading to Vercel Blob: ${fileName}`);
+  const storageUrl = await uploadDocument(caseId, fileName, Buffer.from(fileBlob), getMimeType(fileName));
+  console.log(`[Sync] Vercel Blob upload success: ${storageUrl}`);
 
   // Create document record
   console.log(`[Sync] Inserting document record for: ${fileName}`);
@@ -293,7 +274,7 @@ export async function downloadAndStoreFile(
       caseId,
       userId,
       fileName,
-      storagePath,
+      storageUrl, // Vercel Blob URL
       fileSize: fileMetadata.size,
       fileType: getFileExtension(fileName),
       dropboxPath: fileMetadata.path,
@@ -309,7 +290,7 @@ export async function downloadAndStoreFile(
 
   return {
     documentId: document.id,
-    storagePath,
+    storagePath: storageUrl,
   };
 }
 

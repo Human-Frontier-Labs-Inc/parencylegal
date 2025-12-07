@@ -29,8 +29,8 @@ export async function ensureProfile(userId: string) {
       email
     });
 
-    if (!result.success) {
-      console.error(`Failed to create profile for user ${userId}:`, result.error);
+    if (!result.isSuccess) {
+      console.error(`Failed to create profile for user ${userId}:`, result.message);
       return null;
     }
 

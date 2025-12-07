@@ -9,8 +9,9 @@
 import { useState, useEffect, useRef } from "react";
 import { X, PartyPopper, Check, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { motion } from "motion/react";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 import Link from "next/link";
 import confetti from 'canvas-confetti';
@@ -173,6 +174,9 @@ export default function WelcomeMessagePopup({ profile }: WelcomeMessagePopupProp
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {isOpen && <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-40" />}
       <DialogContent className="fixed left-[50%] top-[50%] z-50 w-[400px] translate-x-[-50%] translate-y-[-50%] border-none p-0 shadow-lg rounded-xl bg-transparent [&>button]:hidden">
+        <VisuallyHidden>
+          <DialogTitle>Welcome to Parency Legal</DialogTitle>
+        </VisuallyHidden>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

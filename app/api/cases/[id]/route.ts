@@ -20,6 +20,11 @@ const updateCaseSchema = z.object({
   // Legacy Dropbox fields (for backward compatibility)
   dropboxFolderPath: z.string().nullable().optional(),
   dropboxFolderId: z.string().nullable().optional(),
+  // CoParency Parent Sync fields
+  parentSyncToken: z.string().nullable().optional(),
+  parentSyncConnectedAt: z.string().nullable().optional(), // ISO timestamp
+  parentName: z.string().nullable().optional(),
+  parentEmail: z.string().nullable().optional(),
   // Explicitly exclude userId from updates
   userId: z.never().optional(),
 })
@@ -151,9 +156,17 @@ export async function PATCH(
     }
 
     // Update case (userId is excluded from schema, so it can't be changed)
+    // Convert ISO timestamp strings to Date objects for timestamp fields
+    const updateData = {
+      ...validation.data,
+      ...(validation.data.parentSyncConnectedAt && {
+        parentSyncConnectedAt: new Date(validation.data.parentSyncConnectedAt)
+      })
+    }
+
     const [updatedCase] = await db
       .update(casesTable)
-      .set(validation.data)
+      .set(updateData)
       .where(sql`${casesTable.id} = ${id}`)
       .returning()
 

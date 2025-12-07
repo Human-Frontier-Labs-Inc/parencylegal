@@ -11,13 +11,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
 
-  // Database
+  // Database (Neon PostgreSQL)
   DATABASE_URL: z.string().url(),
 
-  // Supabase
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Vercel Blob Storage
+  BLOB_READ_WRITE_TOKEN: z.string().startsWith('vercel_blob_'),
 
   // Clerk Authentication
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().startsWith('pk_'),
@@ -50,6 +48,11 @@ const envSchema = z.object({
 
 // Parse and validate environment variables
 const parseEnv = () => {
+  // Skip validation during build if SKIP_ENV_VALIDATION is set
+  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+    return process.env as unknown as z.infer<typeof envSchema>;
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {

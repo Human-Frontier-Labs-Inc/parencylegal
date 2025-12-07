@@ -18,7 +18,6 @@ import {
 } from "@/db/schema/export-jobs-schema";
 import { documentRequestMappingsTable } from "@/db/schema/document-request-mappings-schema";
 import { eq, and, inArray, isNotNull } from "drizzle-orm";
-import { createClient } from "@supabase/supabase-js";
 import {
   generateCoverPage,
   generateTableOfContents,
@@ -26,12 +25,6 @@ import {
   formatDocumentForExport,
   validateExportOptions,
 } from "./pdf-utils";
-
-// Initialize Supabase client for storage
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export interface ExportByCategoryConfig {
   categories: string[];
@@ -177,6 +170,7 @@ export async function getExportJobStatus(
 
 /**
  * Get download URL for completed export
+ * With Vercel Blob, storagePath is the full public URL
  */
 export async function getExportDownloadUrl(
   jobId: string,
@@ -188,18 +182,9 @@ export async function getExportDownloadUrl(
     return null;
   }
 
-  // Generate signed URL (valid for 1 hour)
-  const { data, error } = await supabase.storage
-    .from("exports")
-    .createSignedUrl(job.storagePath, 3600);
-
-  if (error || !data?.signedUrl) {
-    console.error("[Export] Failed to generate signed URL:", error);
-    return null;
-  }
-
+  // Vercel Blob URLs are public - no signing needed
   return {
-    url: data.signedUrl,
+    url: job.storagePath,
     fileName: job.result?.fileName || `export-${jobId}.pdf`,
   };
 }

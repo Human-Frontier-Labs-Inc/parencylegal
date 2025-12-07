@@ -7,7 +7,7 @@
  * Advanced hybrid search (full-text + semantic)
  */
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

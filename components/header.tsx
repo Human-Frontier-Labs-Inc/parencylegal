@@ -11,7 +11,7 @@ import { Home, LayoutDashboard, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { CoParencyIcon } from "@/components/co-parency-logo";
 
 export default function Header() {

@@ -5,18 +5,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Webpack configuration for PDF.js compatibility in serverless
-  webpack: (config, { isServer }) => {
-    // Ignore canvas module (native dependency not available in serverless)
-    config.resolve.alias.canvas = false;
-
-    // Also ignore encoding module (optional dependency)
-    config.resolve.alias.encoding = false;
-
-    return config;
+  // Turbopack configuration (default bundler in Next.js 16)
+  turbopack: {
+    resolveAlias: {
+      // Stub out native modules not available in browser/serverless
+      canvas: './lib/stubs/empty.js',
+      encoding: './lib/stubs/empty.js',
+    },
   },
 };
 

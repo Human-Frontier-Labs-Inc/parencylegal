@@ -7,7 +7,7 @@
 import { db } from '@/db/db';
 import { documentsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { createClient } from '@supabase/supabase-js';
+import { downloadFile } from '@/lib/storage';
 // Dynamic import for unpdf to avoid serverless bundling issues
 let unpdfModule: { extractText: Function } | null = null;
 
@@ -23,12 +23,6 @@ import {
   DOCUMENT_CATEGORIES,
   type ClassificationResult,
 } from './openai';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Types
 export interface ExtractedText {
@@ -258,16 +252,14 @@ export async function classifyAndStore(
     throw new Error('Document not found');
   }
 
-  // Download file from storage
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from('case-documents')
-    .download(document.storagePath);
-
-  if (downloadError || !fileData) {
-    throw new Error('Failed to download document');
+  // Download file from storage (Vercel Blob)
+  // Use storageUrl if available (blob URL), otherwise fall back to storagePath
+  const fileUrl = document.storageUrl || document.storagePath;
+  if (!fileUrl) {
+    throw new Error('No storage URL available for document');
   }
 
-  const fileBuffer = Buffer.from(await fileData.arrayBuffer());
+  const fileBuffer = await downloadFile(fileUrl);
   // fileType from DB may be just 'pdf' or full MIME type 'application/pdf'
   let mimeType = document.fileType || 'application/pdf';
   if (!mimeType.includes('/')) {
