@@ -67,7 +67,9 @@ export async function startSync(
     throw new Error('Case not found');
   }
 
-  if (!caseRecord.dropboxFolderPath) {
+  // Check for folder path in new field first, then legacy field
+  const folderPath = caseRecord.cloudFolderPath || caseRecord.dropboxFolderPath;
+  if (!folderPath) {
     throw new Error('No Dropbox folder mapped');
   }
 
@@ -307,7 +309,9 @@ export async function syncDropboxFolder(
   const syncResult = await startSync(caseId, userId);
 
   const caseRecord = await getCaseWithFolder(caseId, userId);
-  if (!caseRecord?.dropboxFolderPath) {
+  // Check for folder path in new field first, then legacy field
+  const folderPath = caseRecord?.cloudFolderPath || caseRecord?.dropboxFolderPath;
+  if (!folderPath) {
     throw new Error('No Dropbox folder mapped');
   }
 
@@ -325,12 +329,12 @@ export async function syncDropboxFolder(
     const allFiles: DropboxFile[] = [];
     let cursor: string | undefined;
 
-    console.log(`[Sync] Starting sync for case ${caseId}, folder: ${caseRecord.dropboxFolderPath}`);
+    console.log(`[Sync] Starting sync for case ${caseId}, folder: ${folderPath}`);
 
     do {
       const contents = await listDropboxFolders(
         userId,
-        caseRecord.dropboxFolderPath,
+        folderPath,
         cursor
       );
 
