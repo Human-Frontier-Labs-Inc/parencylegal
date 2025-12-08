@@ -10,17 +10,17 @@
     --card-foreground: 210 29% 24%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 29% 24%;
-    /* Co-Parency brand primary: Dark Blue #1E3A5F */
+    /* Parency Legal brand primary: Dark Blue #1E3A5F */
     --primary: 210 52% 25%;
     --primary-foreground: 0 0% 98%;
     --secondary: 174 42% 51%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    /* Co-Parency brand accent: Teal #4DB6AC */
+    /* Parency Legal brand accent: Teal #4DB6AC */
     --accent: 174 42% 51%;
     --accent-foreground: 0 0% 98%;
-    /* Co-Parency brand highlight: Orange #E67E22 */
+    /* Parency Legal brand highlight: Orange #E67E22 */
     --destructive: 28 79% 52%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
@@ -33,7 +33,7 @@
     --chart-4: 210 29% 40%;
     --chart-5: 174 30% 65%;
 
-    /* Co-Parency Brand Colors */
+    /* Parency Legal Brand Colors */
     --brand-navy: 210 52% 25%;
     --brand-teal: 174 42% 51%;
     --brand-orange: 28 79% 52%;
@@ -46,7 +46,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 210 29% 12%;
     --popover-foreground: 0 0% 98%;
-    /* Co-Parency brand primary: Lighter teal for dark mode */
+    /* Parency Legal brand primary: Lighter teal for dark mode */
     --primary: 174 50% 60%;
     --primary-foreground: 210 29% 8%;
     --secondary: 210 40% 35%;
@@ -66,7 +66,7 @@
     --chart-4: 210 40% 50%;
     --chart-5: 174 40% 70%;
 
-    /* Co-Parency Brand Colors (Dark Mode) */
+    /* Parency Legal Brand Colors (Dark Mode) */
     --brand-navy: 210 40% 35%;
     --brand-teal: 174 50% 60%;
     --brand-orange: 28 79% 60%;

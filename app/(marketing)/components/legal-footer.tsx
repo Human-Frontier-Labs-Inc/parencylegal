@@ -1,6 +1,6 @@
 /**
  * Legal Footer Component
- * Co-Parency Legal - AI-powered document management for family law attorneys
+ * Parency Legal - AI-powered document management for family law attorneys
  */
 
 import { Mail, Phone, MapPin } from "lucide-react";
@@ -17,7 +17,7 @@ export default function LegalFooter() {
             <div className="flex items-center gap-2 mb-4">
               <CoParencyIcon size={28} />
               <span className="text-xl font-bold bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
-                Co-Parency Legal
+                Parency Legal
               </span>
             </div>
             <p className="text-muted-foreground max-w-md mb-6">
@@ -28,15 +28,15 @@ export default function LegalFooter() {
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <a
-                  href="mailto:support@co-parency.com"
+                  href="mailto:support@parencylegal.com"
                   className="hover:text-foreground transition-colors"
                 >
-                  support@co-parency.com
+                  support@parencylegal.com
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                <span>(888) CO-PARENCY</span>
+                <span>(888) PARENCY-L</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
@@ -107,7 +107,7 @@ export default function LegalFooter() {
         {/* Bottom Bar */}
         <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-muted-foreground text-sm mb-4 md:mb-0">
-            © {new Date().getFullYear()} Co-Parency, LLC. All rights reserved.
+            © {new Date().getFullYear()} Parency Legal, LLC. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 /**
  * Terms & Agreements Page
- * Co-Parency Legal Attorney & Law Firm End-User License Agreement (EULA)
+ * Parency Legal Attorney & Law Firm End-User License Agreement (EULA)
  */
 
 import { Metadata } from "next";
@@ -8,8 +8,8 @@ import Header from "@/components/header";
 import LegalFooter from "../components/legal-footer";
 
 export const metadata: Metadata = {
-  title: "Terms & Agreements | Co-Parency Legal",
-  description: "Co-Parency Legal Attorney & Law Firm End-User License Agreement (EULA)",
+  title: "Terms & Agreements | Parency Legal",
+  description: "Parency Legal Attorney & Law Firm End-User License Agreement (EULA)",
 };
 
 export default function TermsPage() {
@@ -25,7 +25,7 @@ export default function TermsPage() {
       <main className="container mx-auto max-w-4xl px-4 py-12 md:py-16">
         <article className="prose prose-slate max-w-none">
           <h1 className="text-3xl md:text-4xl font-bold text-brand-navy mb-2">
-            CO-PARENCY-LEGAL
+            PARENCY LEGAL
           </h1>
           <h2 className="text-xl md:text-2xl font-semibold text-brand-navy-light mb-6">
             ATTORNEY & LAW FIRM END-USER LICENSE AGREEMENT (EULA)
@@ -38,27 +38,27 @@ export default function TermsPage() {
 
           <div className="bg-brand-teal/5 border border-brand-teal/20 rounded-lg p-6 mb-8">
             <p className="text-foreground leading-relaxed">
-              This Co-Parency-Legal End-User License Agreement ("Agreement" or "EULA") is a binding contract between:
+              This Parency Legal End-User License Agreement ("Agreement" or "EULA") is a binding contract between:
             </p>
             <ul className="mt-4 space-y-2">
-              <li><strong>Co-Parency, LLC</strong>, an Indiana limited liability company ("Co-Parency," "we," "us," or "our"), and</li>
+              <li><strong>Parency Legal, LLC</strong>, an Indiana limited liability company ("Parency Legal," "we," "us," or "our"), and</li>
               <li><strong>The individual legal professional or entity</strong> accepting this Agreement ("Legal User," "you," or "your").</li>
             </ul>
             <p className="mt-4 text-foreground leading-relaxed">
-              This Agreement governs your access to and use of Co-Parency-Legal, including any related web applications, mobile applications, software, AI services, integrations, and documentation (collectively, the "Platform").
+              This Agreement governs your access to and use of Parency Legal, including any related web applications, mobile applications, software, AI services, integrations, and documentation (collectively, the "Platform").
             </p>
           </div>
 
           <div className="bg-brand-orange/5 border border-brand-orange/20 rounded-lg p-6 mb-8">
             <p className="text-foreground leading-relaxed">
-              By clicking "I Agree," creating a Co-Parency-Legal account, or accessing the Platform, you:
+              By clicking "I Agree," creating a Parency Legal account, or accessing the Platform, you:
             </p>
             <ul className="mt-4 space-y-2">
               <li>Represent that you are a licensed attorney, supervised legal professional, or authorized law firm representative; and</li>
-              <li>Agree to be bound by this Agreement, the Co-Parency Terms of Use, and the Co-Parency Privacy Policy (collectively, the "Co-Parency Terms").</li>
+              <li>Agree to be bound by this Agreement, the Parency Legal Terms of Use, and the Parency Legal Privacy Policy (collectively, the "Parency Legal Terms").</li>
             </ul>
             <p className="mt-4 font-semibold text-brand-orange-dark">
-              If you do not agree to this Agreement, you may not use Co-Parency-Legal.
+              If you do not agree to this Agreement, you may not use Parency Legal.
             </p>
           </div>
 
@@ -70,12 +70,12 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">1.1 Supplement to General Terms.</h4>
             <p className="text-foreground leading-relaxed">
-              This Agreement supplements and is in addition to the general Co-Parency Terms of Use. In the event of a conflict between this Agreement and the general Terms of Use, this Agreement will control with respect to Co-Parency-Legal and Legal Users.
+              This Agreement supplements and is in addition to the general Parency Legal Terms of Use. In the event of a conflict between this Agreement and the general Terms of Use, this Agreement will control with respect to Parency Legal and Legal Users.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">1.2 Professional Use Only.</h4>
             <p className="text-foreground leading-relaxed">
-              Co-Parency-Legal is intended solely for use by legal professionals (attorneys, paralegals, law firm staff) in connection with their legal services. It is not intended for direct consumer use without professional supervision.
+              Parency Legal is intended solely for use by legal professionals (attorneys, paralegals, law firm staff) in connection with their legal services. It is not intended for direct consumer use without professional supervision.
             </p>
           </section>
 
@@ -117,7 +117,7 @@ export default function TermsPage() {
             </h3>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">3.1 Legal Support Tool Only.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency-Legal is a technology platform that assists with:</p>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal is a technology platform that assists with:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Organizing and structuring user-provided materials;</li>
               <li>Summarizing communications, documents, and timelines;</li>
@@ -126,7 +126,7 @@ export default function TermsPage() {
             </ul>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">3.2 No Legal Advice or Legal Services.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency:</p>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Does not provide legal advice, opinions, or legal representation;</li>
               <li>Does not determine legal strategies, case theory, or likelihood of success;</li>
@@ -136,11 +136,11 @@ export default function TermsPage() {
               You acknowledge that all legal analysis, advice, and representation are solely your responsibility.
             </p>
 
-            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">3.3 No Attorney–Client Relationship with Co-Parency.</h4>
+            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">3.3 No Attorney–Client Relationship with Parency Legal.</h4>
             <p className="text-foreground leading-relaxed mb-2">Nothing in your use of the Platform creates:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
-              <li>An attorney–client relationship between Co-Parency and you; or</li>
-              <li>An attorney–client relationship between Co-Parency and any of your clients.</li>
+              <li>An attorney–client relationship between Parency Legal and you; or</li>
+              <li>An attorney–client relationship between Parency Legal and any of your clients.</li>
             </ul>
           </section>
 
@@ -152,7 +152,7 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">4.1 License Grant.</h4>
             <p className="text-foreground leading-relaxed">
-              Subject to this Agreement, Co-Parency grants you a limited, non-exclusive, non-transferable, revocable license to access and use Co-Parency-Legal for your internal professional legal services.
+              Subject to this Agreement, Parency Legal grants you a limited, non-exclusive, non-transferable, revocable license to access and use Parency Legal for your internal professional legal services.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">4.2 Authorized Users.</h4>
@@ -201,11 +201,11 @@ export default function TermsPage() {
               <li>Ensure all materials you rely on meet governing legal standards.</li>
             </ul>
             <p className="text-foreground leading-relaxed mt-2 font-medium">
-              Failure to do so constitutes professional error by you, not a failure of Co-Parency.
+              Failure to do so constitutes professional error by you, not a failure of Parency Legal.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">5.3 Compliance with Bar & Regulatory Rules.</h4>
-            <p className="text-foreground leading-relaxed mb-2">You are solely responsible for ensuring that your use of Co-Parency-Legal complies with:</p>
+            <p className="text-foreground leading-relaxed mb-2">You are solely responsible for ensuring that your use of Parency Legal complies with:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>State bar rules and opinions;</li>
               <li>Ethics requirements regarding the use of AI and cloud-based tools;</li>
@@ -222,31 +222,31 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">6.1 Ownership of Case Data.</h4>
             <p className="text-foreground leading-relaxed">
-              As between you and Co-Parency, you (or your client) own all documents, messages, and case-related content that you upload ("Case Data").
+              As between you and Parency Legal, you (or your client) own all documents, messages, and case-related content that you upload ("Case Data").
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">6.2 License to Process Case Data.</h4>
-            <p className="text-foreground leading-relaxed mb-2">You grant Co-Parency a limited, non-exclusive, revocable license to:</p>
+            <p className="text-foreground leading-relaxed mb-2">You grant Parency Legal a limited, non-exclusive, revocable license to:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Store, process, transform, analyze, and display Case Data;</li>
               <li>Generate derived content (summaries, timelines, drafts) solely to provide the Platform;</li>
               <li>Maintain backups and logs as necessary for security, debugging, and compliance.</li>
             </ul>
             <p className="text-foreground leading-relaxed mt-2 font-medium">
-              Co-Parency does not sell or license Case Data to third parties.
+              Parency Legal does not sell or license Case Data to third parties.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">6.3 Privilege & Confidentiality.</h4>
             <p className="text-foreground leading-relaxed mb-2">You are responsible for:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
-              <li>Determining whether use of Co-Parency-Legal complies with privilege rules;</li>
+              <li>Determining whether use of Parency Legal complies with privilege rules;</li>
               <li>Obtaining any necessary client consent to upload and process Case Data;</li>
               <li>Ensuring you do not upload materials in violation of protective orders, sealing orders, or client agreements.</li>
             </ul>
 
-            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">6.4 No Intentional Waiver by Co-Parency.</h4>
+            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">6.4 No Intentional Waiver by Parency Legal.</h4>
             <p className="text-foreground leading-relaxed">
-              Co-Parency does not intend for its involvement as a third-party technology provider to waive attorney–client privilege or work product protection.
+              Parency Legal does not intend for its involvement as a third-party technology provider to waive attorney–client privilege or work product protection.
               However, you are responsible for understanding how your jurisdiction treats cloud providers and AI tools in the context of privilege.
             </p>
           </section>
@@ -298,10 +298,10 @@ export default function TermsPage() {
               <li>Upload sealed or restricted materials in violation of court orders;</li>
               <li>Engage in vexatious, abusive, or bad-faith litigation tactics;</li>
               <li>Facilitate harassment, intimidation, or unlawful coercion of any party;</li>
-              <li>Allow direct client access to attorney-only tools in a way that misleads them into believing Co-Parency is providing legal advice.</li>
+              <li>Allow direct client access to attorney-only tools in a way that misleads them into believing Parency Legal is providing legal advice.</li>
             </ul>
             <p className="text-foreground leading-relaxed mt-4 font-medium">
-              Co-Parency reserves the right to suspend or terminate access in case of suspected misuse.
+              Parency Legal reserves the right to suspend or terminate access in case of suspected misuse.
             </p>
           </section>
 
@@ -313,7 +313,7 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">9.1 Security Measures.</h4>
             <p className="text-foreground leading-relaxed">
-              Co-Parency uses industry-standard safeguards (e.g., encryption, access controls, secure hosting) to protect Case Data; however, no system is entirely secure.
+              Parency Legal uses industry-standard safeguards (e.g., encryption, access controls, secure hosting) to protect Case Data; however, no system is entirely secure.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">9.2 Your Security Obligations.</h4>
@@ -326,7 +326,7 @@ export default function TermsPage() {
             </ul>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">9.3 Data Retention & Deletion.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency may retain data for:</p>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal may retain data for:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Maintaining service functionality;</li>
               <li>Security and backup purposes;</li>
@@ -344,9 +344,9 @@ export default function TermsPage() {
             </h3>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">10.1 Paid Use.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency-Legal may require subscription fees. By subscribing, you:</p>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal may require subscription fees. By subscribing, you:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
-              <li>Authorize Co-Parency (or its payment processor) to charge your chosen payment method;</li>
+              <li>Authorize Parency Legal (or its payment processor) to charge your chosen payment method;</li>
               <li>Acknowledge that subscriptions may auto-renew unless canceled.</li>
             </ul>
 
@@ -357,7 +357,7 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">10.3 Changes to Fees.</h4>
             <p className="text-foreground leading-relaxed">
-              Co-Parency may update fees or billing models upon reasonable notice. Continued use after such notice constitutes acceptance of the changes.
+              Parency Legal may update fees or billing models upon reasonable notice. Continued use after such notice constitutes acceptance of the changes.
             </p>
           </section>
 
@@ -367,8 +367,8 @@ export default function TermsPage() {
               11. INTELLECTUAL PROPERTY OWNERSHIP
             </h3>
 
-            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">11.1 Co-Parency IP.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency and its licensors own all rights, title, and interest in:</p>
+            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">11.1 Parency Legal IP.</h4>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal and its licensors own all rights, title, and interest in:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>The Platform;</li>
               <li>Underlying software and AI models;</li>
@@ -376,12 +376,12 @@ export default function TermsPage() {
               <li>Any generic or anonymized insights or learnings.</li>
             </ul>
             <p className="text-foreground leading-relaxed mt-2">
-              This Agreement does not grant you ownership of any Co-Parency IP.
+              This Agreement does not grant you ownership of any Parency Legal IP.
             </p>
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">11.2 Feedback.</h4>
             <p className="text-foreground leading-relaxed">
-              If you provide feedback, suggestions, or ideas regarding the Platform, Co-Parency may use them without restriction or obligation, and you assign all rights in such feedback to Co-Parency.
+              If you provide feedback, suggestions, or ideas regarding the Platform, Parency Legal may use them without restriction or obligation, and you assign all rights in such feedback to Parency Legal.
             </p>
           </section>
 
@@ -419,9 +419,9 @@ export default function TermsPage() {
                 TO THE MAXIMUM EXTENT PERMITTED BY LAW:
               </p>
               <p className="text-foreground leading-relaxed uppercase text-sm">
-                CO-PARENCY WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING LOST PROFITS, LOST CLIENTS, LOST REPUTATION, OR LOSS OF DATA.
+                PARENCY LEGAL WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING LOST PROFITS, LOST CLIENTS, LOST REPUTATION, OR LOSS OF DATA.
               </p>
-              <p className="text-foreground leading-relaxed mt-4 uppercase text-sm">CO-PARENCY WILL NOT BE LIABLE FOR:</p>
+              <p className="text-foreground leading-relaxed mt-4 uppercase text-sm">PARENCY LEGAL WILL NOT BE LIABLE FOR:</p>
               <ul className="list-disc pl-6 space-y-1 text-foreground mt-2 uppercase text-sm">
                 <li>LEGAL CASE OUTCOMES;</li>
                 <li>PROFESSIONAL DISCIPLINE OR MALPRACTICE CLAIMS;</li>
@@ -430,7 +430,7 @@ export default function TermsPage() {
                 <li>BREACHES RESULTING FROM YOUR FAILURE TO SECURE ACCESS.</li>
               </ul>
               <p className="text-foreground leading-relaxed mt-4 uppercase text-sm font-medium">
-                IN ALL CASES, CO-PARENCY'S TOTAL LIABILITY UNDER THIS AGREEMENT IS LIMITED TO THE AMOUNTS PAID BY YOU FOR ACCESS TO THE PLATFORM IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM.
+                IN ALL CASES, PARENCY LEGAL'S TOTAL LIABILITY UNDER THIS AGREEMENT IS LIMITED TO THE AMOUNTS PAID BY YOU FOR ACCESS TO THE PLATFORM IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM.
               </p>
             </div>
           </section>
@@ -442,7 +442,7 @@ export default function TermsPage() {
             </h3>
 
             <p className="text-foreground leading-relaxed mb-2">
-              You agree to indemnify, defend, and hold harmless Co-Parency and its officers, directors, employees, contractors, and affiliates from and against any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
+              You agree to indemnify, defend, and hold harmless Parency Legal and its officers, directors, employees, contractors, and affiliates from and against any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
             </p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Your use of the Platform in connection with legal services;</li>
@@ -465,14 +465,14 @@ export default function TermsPage() {
 
             <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">15.1 Term.</h4>
             <p className="text-foreground leading-relaxed">
-              This Agreement remains in effect as long as you maintain an active Co-Parency-Legal account or otherwise use the Platform.
+              This Agreement remains in effect as long as you maintain an active Parency Legal account or otherwise use the Platform.
             </p>
 
-            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">15.2 Suspension or Termination by Co-Parency.</h4>
-            <p className="text-foreground leading-relaxed mb-2">Co-Parency may suspend or terminate your access, in whole or in part, if:</p>
+            <h4 className="font-semibold text-brand-navy-light mt-4 mb-2">15.2 Suspension or Termination by Parency Legal.</h4>
+            <p className="text-foreground leading-relaxed mb-2">Parency Legal may suspend or terminate your access, in whole or in part, if:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
-              <li>You violate this Agreement or the Co-Parency Terms;</li>
-              <li>Co-Parency reasonably suspects misuse or abuse of the Platform;</li>
+              <li>You violate this Agreement or the Parency Legal Terms;</li>
+              <li>Parency Legal reasonably suspects misuse or abuse of the Platform;</li>
               <li>Your use creates a risk of harm, liability, or reputational damage;</li>
               <li>Required by law, court order, or regulatory authority.</li>
             </ul>
@@ -481,7 +481,7 @@ export default function TermsPage() {
             <p className="text-foreground leading-relaxed mb-2">Upon termination:</p>
             <ul className="list-disc pl-6 space-y-1 text-foreground">
               <li>Your right to access the Platform immediately ceases;</li>
-              <li>Co-Parency may retain certain data as required by law or for legitimate business purposes;</li>
+              <li>Parency Legal may retain certain data as required by law or for legitimate business purposes;</li>
               <li>Sections intended to survive (including but not limited to IP Ownership, Warranty Disclaimer, Limitation of Liability, Indemnification, and Governing Law) will remain in full force.</li>
             </ul>
           </section>
@@ -517,9 +517,9 @@ export default function TermsPage() {
             </h3>
 
             <p className="text-foreground leading-relaxed">
-              Co-Parency may update this Agreement from time to time.
+              Parency Legal may update this Agreement from time to time.
               You will be notified via the Platform, email, or other reasonable means.
-              Continued use of Co-Parency-Legal after the effective date of any update constitutes your acceptance of the revised Agreement.
+              Continued use of Parency Legal after the effective date of any update constitutes your acceptance of the revised Agreement.
             </p>
           </section>
 
@@ -531,7 +531,7 @@ export default function TermsPage() {
 
             <ul className="space-y-4 text-foreground">
               <li>
-                <strong>Entire Agreement.</strong> This Agreement, together with the Co-Parency Terms of Use and Privacy Policy, constitutes the entire agreement between you and Co-Parency regarding Co-Parency-Legal.
+                <strong>Entire Agreement.</strong> This Agreement, together with the Parency Legal Terms of Use and Privacy Policy, constitutes the entire agreement between you and Parency Legal regarding Parency Legal.
               </li>
               <li>
                 <strong>Severability.</strong> If any provision is found invalid or unenforceable, the remaining provisions remain in full force.
@@ -540,7 +540,7 @@ export default function TermsPage() {
                 <strong>No Waiver.</strong> Failure to enforce a provision does not waive the right to enforce it later.
               </li>
               <li>
-                <strong>Assignment.</strong> You may not assign this Agreement without Co-Parency's prior written consent. Co-Parency may assign this Agreement in connection with a merger, acquisition, or sale of assets.
+                <strong>Assignment.</strong> You may not assign this Agreement without Parency Legal's prior written consent. Parency Legal may assign this Agreement in connection with a merger, acquisition, or sale of assets.
               </li>
             </ul>
           </section>

@@ -1,5 +1,5 @@
 /**
- * Co-Parency Logo Component
+ * Parency Legal Logo Component
  * Professional family-focused branding for legal platform
  * Colors: Teal circle (#4DB6AC), Dark Blue parents (#1E3A5F), Orange child (#E67E22)
  */
@@ -38,7 +38,7 @@ export function CoParencyLogo({
           text,
           textClassName
         )}>
-          Co-Parency
+          Parency Legal
         </span>
       )}
     </div>

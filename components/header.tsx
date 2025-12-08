@@ -97,7 +97,7 @@ export default function Header() {
                   <CoParencyIcon size={36} className="relative z-10" />
                 </div>
                 <div className="text-lg font-bold bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
-                  Co-Parency
+                  Parency Legal
                 </div>
               </motion.div>
             </Link>

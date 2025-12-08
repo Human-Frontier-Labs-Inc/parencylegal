@@ -52,7 +52,7 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Co-Parency Brand Colors
+        // Parency Legal Brand Colors
         brand: {
           navy: {
             DEFAULT: "#1E3A5F",

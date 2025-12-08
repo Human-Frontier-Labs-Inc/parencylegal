@@ -116,7 +116,7 @@ export default function Sidebar({ profile, userEmail, monthlyPriceId, yearlyPric
               <div className="hidden md:flex items-center gap-2">
                 <CoParencyIcon size={28} />
                 <span className="font-bold text-base bg-gradient-to-r from-[#1E3A5F] to-[#2C5282] bg-clip-text text-transparent">
-                  Co-Parency
+                  Parency Legal
                 </span>
               </div>
               {/* Mobile: Compact icon only */}
