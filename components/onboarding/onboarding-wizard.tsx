@@ -149,14 +149,22 @@ export default function OnboardingWizard({
     setCaseError(null);
 
     try {
+      // Build request body - only include fields that have values
+      // Zod schema expects undefined for optional fields, not null
+      const requestBody: { name: string; clientName?: string; opposingParty?: string } = {
+        name: caseName.trim(),
+      };
+      if (clientName.trim()) {
+        requestBody.clientName = clientName.trim();
+      }
+      if (opposingParty.trim()) {
+        requestBody.opposingParty = opposingParty.trim();
+      }
+
       const response = await fetch("/api/cases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: caseName.trim(),
-          clientName: clientName.trim() || null,
-          opposingParty: opposingParty.trim() || null,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

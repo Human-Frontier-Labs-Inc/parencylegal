@@ -6,20 +6,21 @@ import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 // Validation schema for creating a case
+// Using .nullable().optional() to accept null, undefined, or valid values
 const createCaseSchema = z.object({
   name: z.string().min(1, 'Case name is required'),
-  clientName: z.string().optional(),
-  opposingParty: z.string().optional(),
-  caseNumber: z.string().optional(),
+  clientName: z.string().nullable().optional().transform(val => val ?? undefined),
+  opposingParty: z.string().nullable().optional().transform(val => val ?? undefined),
+  caseNumber: z.string().nullable().optional().transform(val => val ?? undefined),
   status: z.enum(['active', 'discovery', 'trial_prep', 'settlement', 'closed']).optional().default('active'),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional().transform(val => val ?? undefined),
   // Cloud storage fields (provider-agnostic)
-  cloudStorageProvider: z.enum(['dropbox', 'onedrive']).optional(),
-  cloudFolderPath: z.string().optional(),
-  cloudFolderId: z.string().optional(),
+  cloudStorageProvider: z.enum(['dropbox', 'onedrive']).nullable().optional(),
+  cloudFolderPath: z.string().nullable().optional().transform(val => val ?? undefined),
+  cloudFolderId: z.string().nullable().optional().transform(val => val ?? undefined),
   // Legacy Dropbox fields (for backward compatibility)
-  dropboxFolderPath: z.string().optional(),
-  dropboxFolderId: z.string().optional(),
+  dropboxFolderPath: z.string().nullable().optional().transform(val => val ?? undefined),
+  dropboxFolderId: z.string().nullable().optional().transform(val => val ?? undefined),
 })
 
 // GET /api/cases - List all cases for authenticated user
