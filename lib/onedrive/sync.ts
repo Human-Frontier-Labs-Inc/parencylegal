@@ -235,6 +235,7 @@ async function downloadAndStoreFile(
       caseId,
       userId,
       fileName: file.name,
+      storagePath: storageUrl, // Use Vercel Blob URL as storage path (required NOT NULL field)
       storageUrl, // Vercel Blob URL
       fileSize: file.size,
       fileType: getFileExtension(file.name),
