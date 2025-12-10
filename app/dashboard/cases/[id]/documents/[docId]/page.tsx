@@ -192,13 +192,10 @@ export default function DocumentViewerPage() {
   const fetchPreviewUrl = async () => {
     setPreviewLoading(true);
     try {
-      const response = await fetch(`/api/documents/${docId}/preview-url`);
-      if (response.ok) {
-        const data = await response.json();
-        setPreviewUrl(data.url);
-      } else {
-        console.log("Preview URL not available");
-      }
+      // Use the proxy endpoint to avoid CORS issues with pdf.js
+      // The /api/documents/:id/content endpoint proxies the PDF content
+      // with proper headers that allow pdf.js worker to load it
+      setPreviewUrl(`/api/documents/${docId}/content`);
     } catch (error) {
       console.error("Failed to fetch preview URL:", error);
     } finally {
