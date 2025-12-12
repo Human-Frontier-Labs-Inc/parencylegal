@@ -14,6 +14,7 @@ interface OnboardingWrapperProps {
 export default function OnboardingWrapper({ userId }: OnboardingWrapperProps) {
   const [hasCases, setHasCases] = useState<boolean | null>(null);
   const [hasDropbox, setHasDropbox] = useState(false);
+  const [hasOnedrive, setHasOnedrive] = useState(false);
 
   useEffect(() => {
     // Check if user has any cases
@@ -45,8 +46,22 @@ export default function OnboardingWrapper({ userId }: OnboardingWrapperProps) {
       }
     };
 
+    // Check OneDrive status
+    const checkOnedrive = async () => {
+      try {
+        const response = await fetch("/api/auth/onedrive/status");
+        if (response.ok) {
+          const data = await response.json();
+          setHasOnedrive(data.connected);
+        }
+      } catch {
+        setHasOnedrive(false);
+      }
+    };
+
     checkCases();
     checkDropbox();
+    checkOnedrive();
   }, []);
 
   // Don't render until we know the case status
@@ -58,6 +73,7 @@ export default function OnboardingWrapper({ userId }: OnboardingWrapperProps) {
     <OnboardingWizard
       userId={userId}
       hasDropboxConnected={hasDropbox}
+      hasOnedriveConnected={hasOnedrive}
       hasCases={hasCases}
     />
   );

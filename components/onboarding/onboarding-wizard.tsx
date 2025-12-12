@@ -4,7 +4,7 @@
  *
  * Steps:
  * 1. Welcome - Introduction to Parency Legal
- * 2. Connect Dropbox - Link cloud storage
+ * 2. Cloud Storage - Link Dropbox and/or OneDrive
  * 3. Create Case - Set up first case
  * 4. Next Steps - Quick tips and done
  */
@@ -39,21 +39,26 @@ import { cn } from "@/lib/utils";
 interface OnboardingWizardProps {
   userId: string;
   hasDropboxConnected?: boolean;
+  hasOnedriveConnected?: boolean;
   hasCases?: boolean;
 }
 
-type OnboardingStep = "welcome" | "dropbox" | "create-case" | "complete";
+type OnboardingStep = "welcome" | "cloud-storage" | "create-case" | "complete";
 
-const STEPS: OnboardingStep[] = ["welcome", "dropbox", "create-case", "complete"];
+const STEPS: OnboardingStep[] = ["welcome", "cloud-storage", "create-case", "complete"];
+
+type ConnectionStatus = "checking" | "connected" | "disconnected";
 
 export default function OnboardingWizard({
   userId,
   hasDropboxConnected = false,
+  hasOnedriveConnected = false,
   hasCases = false,
 }: OnboardingWizardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
-  const [dropboxStatus, setDropboxStatus] = useState<"checking" | "connected" | "disconnected">("checking");
+  const [dropboxStatus, setDropboxStatus] = useState<ConnectionStatus>("checking");
+  const [onedriveStatus, setOnedriveStatus] = useState<ConnectionStatus>("checking");
   const [isCreatingCase, setIsCreatingCase] = useState(false);
   const [caseCreated, setCaseCreated] = useState(false);
   const [newCaseId, setNewCaseId] = useState<string | null>(null);
@@ -88,6 +93,15 @@ export default function OnboardingWizard({
     }
   }, [hasDropboxConnected]);
 
+  // Check OneDrive status
+  useEffect(() => {
+    if (hasOnedriveConnected) {
+      setOnedriveStatus("connected");
+    } else {
+      checkOnedriveStatus();
+    }
+  }, [hasOnedriveConnected]);
+
   const checkDropboxStatus = async () => {
     try {
       const response = await fetch("/api/auth/dropbox/status");
@@ -99,6 +113,20 @@ export default function OnboardingWizard({
       }
     } catch {
       setDropboxStatus("disconnected");
+    }
+  };
+
+  const checkOnedriveStatus = async () => {
+    try {
+      const response = await fetch("/api/auth/onedrive/status");
+      if (response.ok) {
+        const data = await response.json();
+        setOnedriveStatus(data.connected ? "connected" : "disconnected");
+      } else {
+        setOnedriveStatus("disconnected");
+      }
+    } catch {
+      setOnedriveStatus("disconnected");
     }
   };
 
@@ -116,20 +144,21 @@ export default function OnboardingWizard({
     }
   };
 
-  const handleSkipDropbox = () => {
+  const handleSkipCloudStorage = () => {
     handleNext();
   };
 
-  const handleConnectDropbox = () => {
-    // Open Dropbox OAuth in a popup
+  const openOAuthPopup = (provider: "dropbox" | "onedrive") => {
     const width = 600;
     const height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
+    const url = provider === "dropbox" ? "/api/auth/dropbox" : "/api/auth/onedrive";
+
     const popup = window.open(
-      "/api/auth/dropbox/connect",
-      "dropbox_auth",
+      url,
+      `${provider}_auth`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
 
@@ -137,9 +166,21 @@ export default function OnboardingWizard({
     const checkInterval = setInterval(() => {
       if (popup?.closed) {
         clearInterval(checkInterval);
-        checkDropboxStatus();
+        if (provider === "dropbox") {
+          checkDropboxStatus();
+        } else {
+          checkOnedriveStatus();
+        }
       }
     }, 500);
+  };
+
+  const handleConnectDropbox = () => {
+    openOAuthPopup("dropbox");
+  };
+
+  const handleConnectOnedrive = () => {
+    openOAuthPopup("onedrive");
   };
 
   const handleCreateCase = async () => {
@@ -229,6 +270,9 @@ export default function OnboardingWizard({
   const currentStepIndex = STEPS.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
 
+  // Check if at least one cloud provider is connected
+  const hasAnyCloudConnected = dropboxStatus === "connected" || onedriveStatus === "connected";
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden">
@@ -304,7 +348,7 @@ export default function OnboardingWizard({
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Cloud className="w-4 h-4 text-primary" />
-                      Connect your Dropbox for document sync
+                      Connect Dropbox or OneDrive for document sync
                     </li>
                     <li className="flex items-center gap-2">
                       <FolderPlus className="w-4 h-4 text-primary" />
@@ -329,10 +373,10 @@ export default function OnboardingWizard({
               </motion.div>
             )}
 
-            {/* Step 2: Connect Dropbox */}
-            {currentStep === "dropbox" && (
+            {/* Step 2: Connect Cloud Storage */}
+            {currentStep === "cloud-storage" && (
               <motion.div
-                key="dropbox"
+                key="cloud-storage"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -342,14 +386,15 @@ export default function OnboardingWizard({
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
                     <Cloud className="w-8 h-8 text-blue-500" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">Connect Dropbox</h2>
+                  <h2 className="text-2xl font-bold mb-2">Connect Cloud Storage</h2>
                   <p className="text-muted-foreground">
-                    Sync your case files directly from Dropbox.
-                    No manual uploads needed.
+                    Sync your case files from Dropbox or OneDrive.
+                    Connect one or both providers.
                   </p>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                {/* Dropbox Card */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
@@ -360,13 +405,13 @@ export default function OnboardingWizard({
                       <div>
                         <p className="font-medium">Dropbox</p>
                         <p className="text-sm text-muted-foreground">
-                          {dropboxStatus === "checking" && "Checking connection..."}
+                          {dropboxStatus === "checking" && "Checking..."}
                           {dropboxStatus === "connected" && "Connected"}
                           {dropboxStatus === "disconnected" && "Not connected"}
                         </p>
                       </div>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-2">
                       {dropboxStatus === "checking" && (
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                       )}
@@ -374,33 +419,59 @@ export default function OnboardingWizard({
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
                       {dropboxStatus === "disconnected" && (
-                        <XCircle className="w-5 h-5 text-gray-400" />
+                        <Button size="sm" onClick={handleConnectDropbox}>
+                          Connect
+                        </Button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {dropboxStatus === "connected" ? (
+                {/* OneDrive Card */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#0078D4">
+                          <path d="M10.5 18.5h7.9c2.3 0 4.1-1.8 4.1-4.1 0-2-1.4-3.7-3.3-4 .1-.3.1-.6.1-.9 0-2.8-2.2-5-5-5-2.1 0-3.9 1.3-4.6 3.1-.5-.2-1-.3-1.6-.3-2.2 0-4 1.8-4 4 0 .3 0 .6.1.9C2.4 12.8 1 14.6 1 16.7c0 2.5 2 4.5 4.5 4.5h5v-2.7z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium">OneDrive</p>
+                        <p className="text-sm text-muted-foreground">
+                          {onedriveStatus === "checking" && "Checking..."}
+                          {onedriveStatus === "connected" && "Connected"}
+                          {onedriveStatus === "disconnected" && "Not connected"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {onedriveStatus === "checking" && (
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      )}
+                      {onedriveStatus === "connected" && (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      )}
+                      {onedriveStatus === "disconnected" && (
+                        <Button size="sm" onClick={handleConnectOnedrive}>
+                          Connect
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {hasAnyCloudConnected && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-center">
                     <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
                     <p className="font-medium text-green-800">
-                      Dropbox is connected!
+                      Cloud storage connected!
                     </p>
                     <p className="text-sm text-green-600">
                       You can sync documents from your cases.
                     </p>
                   </div>
-                ) : dropboxStatus === "disconnected" ? (
-                  <Button
-                    onClick={handleConnectDropbox}
-                    className="w-full mb-4"
-                    size="lg"
-                  >
-                    <Cloud className="w-4 h-4 mr-2" />
-                    Connect Dropbox
-                    <ExternalLink className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : null}
+                )}
 
                 <div className="flex gap-3">
                   <Button variant="ghost" onClick={handleBack}>
@@ -408,11 +479,11 @@ export default function OnboardingWizard({
                     Back
                   </Button>
                   <Button
-                    onClick={dropboxStatus === "connected" ? handleNext : handleSkipDropbox}
+                    onClick={hasAnyCloudConnected ? handleNext : handleSkipCloudStorage}
                     className="flex-1"
-                    variant={dropboxStatus === "connected" ? "default" : "outline"}
+                    variant={hasAnyCloudConnected ? "default" : "outline"}
                   >
-                    {dropboxStatus === "connected" ? "Continue" : "Skip for now"}
+                    {hasAnyCloudConnected ? "Continue" : "Skip for now"}
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
@@ -558,9 +629,9 @@ export default function OnboardingWizard({
                         <span className="text-xs font-medium text-primary">1</span>
                       </div>
                       <div>
-                        <p className="font-medium">Link a Dropbox Folder</p>
+                        <p className="font-medium">Link a Cloud Folder</p>
                         <p className="text-muted-foreground">
-                          Go to your case and click &quot;Link Dropbox Folder&quot;
+                          Go to your case and link a Dropbox or OneDrive folder
                         </p>
                       </div>
                     </li>
@@ -571,7 +642,7 @@ export default function OnboardingWizard({
                       <div>
                         <p className="font-medium">Sync Documents</p>
                         <p className="text-muted-foreground">
-                          Click &quot;Sync from Dropbox&quot; to import files
+                          Click &quot;Sync from Cloud&quot; to import files
                         </p>
                       </div>
                     </li>
