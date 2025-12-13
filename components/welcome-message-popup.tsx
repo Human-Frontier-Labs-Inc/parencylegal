@@ -38,40 +38,53 @@ export default function WelcomeMessagePopup({ profile }: WelcomeMessagePopupProp
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === 'undefined') return;
-    
+
     // Check if another popup is already active
     try {
       const activePopup = localStorage.getItem('active_popup');
-      // Don't show if another popup is active (especially payment_success)
+      // Don't show if another popup is active (especially payment_success or onboarding)
       if (activePopup) {
+        console.log('Welcome popup: Another popup is active, skipping');
         return;
       }
     } catch (error) {
       console.error('Error accessing localStorage:', error);
     }
-    
+
     // Check if we've already shown this welcome message
     const welcomeKey = `welcome_shown_${profile.userId}`;
     const hasShownWelcome = localStorage.getItem(welcomeKey);
-    
+
+    // Check if onboarding has been completed
+    // If not, the onboarding wizard will handle the welcome experience
+    const onboardingKey = `onboarding_completed_${profile.userId}`;
+    const hasCompletedOnboarding = localStorage.getItem(onboardingKey);
+
     // Check if the profile was created recently (within 10 minutes)
-    const isNewUser = profile.createdAt && 
+    const isNewUser = profile.createdAt &&
       (new Date().getTime() - new Date(profile.createdAt).getTime() < 10 * 60 * 1000);
-    
+
     // Check if the URL has a payment=success parameter
     const url = new URL(window.location.href);
     const isPaymentSuccess = url.searchParams.get('payment') === 'success';
-    
-    console.log('Welcome popup check:', { 
+
+    console.log('Welcome popup check:', {
       hasShownWelcome,
+      hasCompletedOnboarding,
       isNewUser,
       isPaymentSuccess,
-      createdAt: profile.createdAt 
+      createdAt: profile.createdAt
     });
-    
+
+    // Don't show welcome popup if onboarding hasn't been completed
+    // The onboarding wizard has its own welcome step
+    if (!hasCompletedOnboarding && isNewUser) {
+      console.log('Welcome popup: Onboarding not complete, letting onboarding handle welcome');
+      return;
+    }
+
     // Show the popup if:
-    // 1. We haven't shown it before AND the user is new, OR
-    // 2. Payment was successful (paid user should see confirmation regardless of timing)
+    // 1. We haven't shown it before AND the user is new (and onboarding is done)
     // Note: For payment success, the payment success popup has higher priority
     if ((!hasShownWelcome && isNewUser) && !isPaymentSuccess) {
       console.log('Showing welcome popup');
@@ -80,13 +93,14 @@ export default function WelcomeMessagePopup({ profile }: WelcomeMessagePopupProp
         try {
           const activePopup = localStorage.getItem('active_popup');
           if (activePopup) {
+            console.log('Welcome popup: Another popup became active, aborting');
             return;
           }
-          
+
           // Set this as the active popup
           localStorage.setItem('active_popup', 'welcome_message');
           setIsOpen(true);
-          
+
           if (!confettiShown.current) {
             triggerConfetti();
             confettiShown.current = true;
@@ -95,7 +109,7 @@ export default function WelcomeMessagePopup({ profile }: WelcomeMessagePopupProp
           console.error('Error accessing localStorage:', error);
         }
       }, 800);
-      
+
       return () => clearTimeout(timer);
     }
   }, [profile.userId, profile.createdAt]);

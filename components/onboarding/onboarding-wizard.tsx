@@ -71,6 +71,9 @@ export default function OnboardingWizard({
 
   // Check if onboarding should show
   useEffect(() => {
+    // Only run in browser
+    if (typeof window === 'undefined') return;
+
     const onboardingKey = `onboarding_completed_${userId}`;
     const hasCompletedOnboarding = localStorage.getItem(onboardingKey);
 
@@ -78,8 +81,23 @@ export default function OnboardingWizard({
     if (!hasCompletedOnboarding && !hasCases) {
       // Small delay for smoother UX
       const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 500);
+        try {
+          // Check if another popup is active (like payment success)
+          const activePopup = localStorage.getItem('active_popup');
+          if (activePopup) {
+            // Another popup is active, don't show onboarding yet
+            console.log('Onboarding: Another popup is active, skipping');
+            return;
+          }
+
+          // Set this as the active popup
+          localStorage.setItem('active_popup', 'onboarding');
+          setIsOpen(true);
+        } catch (error) {
+          console.error('Onboarding: Error accessing localStorage:', error);
+          setIsOpen(true); // Show anyway if localStorage fails
+        }
+      }, 600); // Slightly longer delay to let other popups claim priority
       return () => clearTimeout(timer);
     }
   }, [userId, hasCases]);
@@ -249,10 +267,25 @@ export default function OnboardingWizard({
     }
   };
 
+  // Clear the active popup flag
+  const clearActivePopup = () => {
+    try {
+      const activePopup = localStorage.getItem('active_popup');
+      if (activePopup === 'onboarding') {
+        localStorage.removeItem('active_popup');
+      }
+    } catch (error) {
+      console.error('Onboarding: Error clearing active popup:', error);
+    }
+  };
+
   const handleComplete = () => {
     // Mark onboarding as complete
     const onboardingKey = `onboarding_completed_${userId}`;
     localStorage.setItem(onboardingKey, new Date().toISOString());
+
+    // Clear the active popup flag
+    clearActivePopup();
     setIsOpen(false);
 
     // Redirect to the new case if created
@@ -264,7 +297,19 @@ export default function OnboardingWizard({
   const handleSkipAll = () => {
     const onboardingKey = `onboarding_completed_${userId}`;
     localStorage.setItem(onboardingKey, new Date().toISOString());
+
+    // Clear the active popup flag
+    clearActivePopup();
     setIsOpen(false);
+  };
+
+  // Handle dialog close (e.g., clicking outside or pressing escape)
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // User is closing the dialog
+      clearActivePopup();
+    }
+    setIsOpen(open);
   };
 
   const currentStepIndex = STEPS.indexOf(currentStep);
@@ -274,7 +319,7 @@ export default function OnboardingWizard({
   const hasAnyCloudConnected = dropboxStatus === "connected" || onedriveStatus === "connected";
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden">
         {/* Progress Bar */}
         <div className="h-1 bg-gray-100">
